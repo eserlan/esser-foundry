@@ -1,0 +1,14 @@
+{
+  "ESSER.Concept": "Concept",
+  "ESSER.Strikes": "Strikes",
+  "ESSER.Skills": "Skills",
+  "ESSER.Skill": {
+    "athletics": "Athletics", "acrobatics": "Acrobatics", "endurance": "Endurance", "melee": "Melee",
+    "ranged": "Ranged", "unarmed": "Unarmed", "stealth": "Stealth", "thievery": "Thievery",
+    "nature": "Nature", "survival": "Survival", "crafting": "Crafting", "lore": "Lore",
+    "persuasion": "Persuasion", "deception": "Deception", "intimidation": "Intimidation", "performance": "Performance",
+    "perception": "Perception", "healing": "Healing", "animal": "Animal Handling",
+    "spell_arcane": "Spellcasting (Arcane)", "spell_divine": "Spellcasting (Divine)",
+    "spell_occult": "Spellcasting (Occult)", "spell_primal": "Spellcasting (Primal)"
+  }
+}

@@ -1,0 +1,10 @@
+.esser.sheet.actor { font-family: var(--font-primary); }
+.esser-sheet { padding: 10px; }
+.esser-header { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 8px; }
+.esser-header h1 { margin: 0; font-size: 1.2rem; }
+.esser-header .strikes { display: flex; align-items: center; gap: 6px; }
+.esser-header .strikes button { width: 28px; }
+.skills .grid { display: grid; grid-template-columns: 28px 1fr 72px; gap: 6px 10px; }
+.skills .row { display: contents; }
+.skills .label { align-self: center; }
+.skills input[type="number"] { width: 100%; }

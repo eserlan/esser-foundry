@@ -1,0 +1,29 @@
+<section class="esser-sheet">
+  <header class="esser-header">
+    <h1>{{actor.name}}</h1>
+    <div class="concept">
+      <label>{{localize "ESSER.Concept"}}</label>
+      <input type="text" name="system.concept" value="{{system.concept}}" />
+    </div>
+    <div class="strikes">
+      <label>{{localize "ESSER.Strikes"}}</label>
+      <button type="button" data-action="strike-dec">−</button>
+      <input type="number" name="system.strikes" value="{{system.strikes}}" min="0" max="{{system.maxStrikes}}" />
+      <button type="button" data-action="strike-inc">+</button>
+      <span>/ {{system.maxStrikes}}</span>
+    </div>
+  </header>
+
+  <section class="skills">
+    <h2>{{localize "ESSER.Skills"}}</h2>
+    <div class="grid">
+      {{#each skills}}
+      <div class="row">
+        <button type="button" data-action="roll-skill" data-skill="{{this.key}}">🎲</button>
+        <span class="label">{{this.label}}</span>
+        <input type="number" name="system.skills.{{this.key}}" value="{{lookup ../system.skills this.key}}" />
+      </div>
+      {{/each}}
+    </div>
+  </section>
+</section>
