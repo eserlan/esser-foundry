@@ -65,6 +65,14 @@ const SKILL_RANK_DEFS = [
   { value: 6, labelKey: "ESSER.SkillRank.master" }
 ];
 
+const SKILL_RANK_LOOKUP = SKILL_RANK_DEFS.reduce((acc, rank) => {
+  const key = rank.labelKey?.split(".").pop();
+  if (key) {
+    acc[key.toLowerCase()] = rank.value;
+  }
+  return acc;
+}, {});
+
 const SKILL_TO_ATTRIBUTE = Object.entries(ATTRIBUTE_DEFS).reduce((acc, [attributeKey, def]) => {
   for (const skill of def.skills) {
     acc[skill] = attributeKey;
@@ -195,7 +203,7 @@ function formatModifier(value) {
 }
 
 export async function rollSkill(actor, skill, { flavor = "" } = {}) {
-  const skillBonus = Number(actor.system.skills?.[skill] ?? 0);
+  const skillBonus = resolveSkillBonus(actor.system.skills?.[skill]);
   const attributeKey = SKILL_TO_ATTRIBUTE[skill];
   const attributeDef = attributeKey ? ATTRIBUTE_DEFS[attributeKey] : null;
   const attributeBonus = attributeKey
@@ -227,6 +235,49 @@ export async function rollSkill(actor, skill, { flavor = "" } = {}) {
   });
 
   return { roll, total, result };
+}
+
+function resolveSkillBonus(rawValue) {
+  const { bonus } = extractSkillBonus(rawValue);
+  return bonus;
+}
+
+function extractSkillBonus(value) {
+  if (value === null || value === undefined) {
+    return { bonus: 0, found: false };
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return { bonus: value, found: true };
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return { bonus: 0, found: false };
+
+    const numeric = Number(trimmed);
+    if (!Number.isNaN(numeric)) {
+      return { bonus: numeric, found: true };
+    }
+
+    const lookup = SKILL_RANK_LOOKUP[trimmed.toLowerCase()];
+    if (lookup !== undefined) {
+      return { bonus: lookup, found: true };
+    }
+
+    return { bonus: 0, found: false };
+  }
+
+  if (typeof value === "object") {
+    for (const key of ["bonus", "value", "rank", "score"]) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        const result = extractSkillBonus(value[key]);
+        if (result.found) return result;
+      }
+    }
+  }
+
+  return { bonus: 0, found: false };
 }
 
 // Utility for opposed comparison (reused by macro)
