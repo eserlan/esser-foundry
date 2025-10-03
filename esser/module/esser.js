@@ -134,6 +134,10 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
       });
     });
 
+    htmlElement.querySelectorAll("[data-action='edit-image']").forEach((button) => {
+      button.addEventListener("click", (event) => this._onEditActorImage(event));
+    });
+
     htmlElement.querySelectorAll("[data-action='strike-inc']").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.preventDefault();
@@ -161,6 +165,67 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
   async _updateObject(event, formData) {
     const expanded = expandSubmitData(formData);
     return this.actor.update(expanded);
+  }
+
+  async _onEditActorImage(event) {
+    event.preventDefault();
+    const target = event.currentTarget;
+    const editPath = target?.dataset.edit;
+    if (!editPath) return;
+
+    const current = foundry.utils.getProperty(this.actor, editPath) ?? "";
+
+    const pickerOptions = {
+      type: "image",
+      current,
+      callback: async (path) => {
+        const update = {};
+        foundry.utils.setProperty(update, editPath, path);
+        await this.actor.update(update);
+      }
+    };
+
+    const FilePickerCls = globalThis.FilePicker;
+
+    if (typeof FilePickerCls?.fromUser === "function") {
+      return FilePickerCls.fromUser(pickerOptions);
+    }
+
+    if (typeof FilePickerCls === "function") {
+      const filePicker = new FilePickerCls(pickerOptions);
+      return filePicker.render(true);
+    }
+
+    return this._fallbackImagePrompt(editPath, current);
+  }
+
+  async _fallbackImagePrompt(editPath, current) {
+    const title = game.i18n.localize?.("ESSER.CharacterPortrait") ?? "Character Portrait";
+    const safeCurrent = foundry.utils.escapeHTML?.(current) ?? current;
+    const content = `
+      <p>${game.i18n.localize?.("ESSER.PortraitPromptHint") ?? "Enter an image URL to use for this character."}</p>
+      <div class="form-group">
+        <label>${game.i18n.localize?.("ESSER.ImagePath") ?? "Image Path"}</label>
+        <input type="text" name="img-path" value="${safeCurrent}" placeholder="https://..." />
+      </div>
+    `.trim();
+
+    const result = await Dialog.prompt({
+      title,
+      content,
+      label: game.i18n.localize?.("ESSER.Confirm") ?? "Confirm",
+      rejectClose: false,
+      callback: (html) => {
+        const root = html instanceof HTMLElement ? html : html[0];
+        return root?.querySelector?.("input[name='img-path']")?.value?.trim();
+      }
+    });
+
+    if (!result) return null;
+
+    const update = {};
+    foundry.utils.setProperty(update, editPath, result);
+    return this.actor.update(update);
   }
 }
 
