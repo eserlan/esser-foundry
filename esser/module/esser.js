@@ -138,6 +138,10 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
       button.addEventListener("click", (event) => this._onEditActorImage(event));
     });
 
+    htmlElement.querySelectorAll("[data-action='view-image']").forEach((button) => {
+      button.addEventListener("click", (event) => this._onViewActorImage(event));
+    });
+
     htmlElement.querySelectorAll("[data-action='strike-inc']").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.preventDefault();
@@ -199,6 +203,26 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
     }
 
     return this._fallbackImagePrompt(editPath, current);
+  }
+
+  async _onViewActorImage(event) {
+    event.preventDefault();
+
+    const img = this.actor?.img;
+    if (!img) return;
+
+    const title = this.actor?.name ?? game.i18n.localize?.("ESSER.CharacterPortrait") ?? "Portrait";
+
+    const ImagePopoutCls = foundry?.applications?.api?.ImagePopout
+      ?? globalThis.ImagePopout
+      ?? foundry?.applications?.apps?.ImagePopout;
+
+    if (typeof ImagePopoutCls === "function") {
+      const popout = new ImagePopoutCls(img, { title });
+      return popout.render(true);
+    }
+
+    return window.open(img, "_blank", "noopener");
   }
 
   async _fallbackImagePrompt(editPath, current) {
