@@ -1,4 +1,4 @@
-# ESSER – Foundry System (v0.1.0)
+# ESSER – Foundry System (v0.1.14)
 
 **Install (dev):**
 1. Place the `esser` folder in your Foundry `Data/systems/` directory.

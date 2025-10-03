@@ -185,7 +185,9 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
       }
     };
 
-    const FilePickerCls = globalThis.FilePicker;
+    const FilePickerCls = foundry?.applications?.apps?.FilePicker?.implementation
+      ?? foundry?.applications?.FilePicker
+      ?? globalThis.FilePicker;
 
     if (typeof FilePickerCls?.fromUser === "function") {
       return FilePickerCls.fromUser(pickerOptions);
