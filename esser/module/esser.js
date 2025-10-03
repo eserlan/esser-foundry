@@ -64,15 +64,20 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
   }
 
   async _modStrikes(delta) {
-    const s = foundry.utils.clamp(this.actor.system.strikes + delta, 0, this.actor.system.maxStrikes ?? 3);
+    const maxStrikes = this.actor.system.maxStrikes ?? 3;
+    const s = clamp(this.actor.system.strikes + delta, 0, maxStrikes);
     await this.actor.update({ "system.strikes": s });
-    if (s >= (this.actor.system.maxStrikes ?? 3)) {
+    if (s >= maxStrikes) {
       ui.notifications.warn(`${this.actor.name} is OUT (3 Strikes).`);
     }
   }
 }
 
 // ---------- Helpers ----------
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function skillList() {
   return {
     athletics: "Athletics", acrobatics: "Acrobatics", endurance: "Endurance", melee: "Melee",
@@ -87,7 +92,7 @@ function skillList() {
 
 export async function rollSkill(actor, skill, { flavor = "" } = {}) {
   const bonus = Number(actor.system.skills?.[skill] ?? 0);
-  const roll = await (new Roll(`1d20 + ${bonus}`)).roll({ async: true });
+  const roll = await (new Roll(`1d20 + ${bonus}`)).evaluate();
   const total = roll.total;
 
   // Results ladder
