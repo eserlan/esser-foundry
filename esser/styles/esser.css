@@ -90,6 +90,8 @@
   border-radius: 12px;
   cursor: pointer;
   display: block;
+  margin: 0;
+  line-height: 0;
 }
 
 .portrait-button:focus-visible {
