@@ -10,6 +10,7 @@
   "ESSER.NotesPlaceholder": "Background beats, allies, goals, scars, and reminders all live here.",
   "ESSER.CharacterName": "Character Name",
   "ESSER.CharacterPortrait": "Click to change portrait",
+  "ESSER.ViewPortrait": "View large portrait",
   "ESSER.PortraitPromptHint": "Paste an image URL or upload a file to represent your character.",
   "ESSER.ImagePath": "Image Path",
   "ESSER.Confirm": "Confirm",

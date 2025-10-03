@@ -13,6 +13,15 @@
           >
             <img src="{{actor.img}}" alt="{{actor.name}}" />
           </button>
+          <button
+            type="button"
+            class="portrait-viewer"
+            data-action="view-image"
+            aria-label="{{localize 'ESSER.ViewPortrait'}}"
+            title="{{localize 'ESSER.ViewPortrait'}}"
+          >
+            <span aria-hidden="true">🖼️</span>
+          </button>
         </div>
         <div class="identity">
           <label class="field-label" for="esser-actor-name-{{actor._id}}">{{localize "ESSER.CharacterName"}}</label>
