@@ -3,6 +3,8 @@
   "ESSER.Strikes": "Strikes",
   "ESSER.Skills": "Skills",
   "ESSER.SkillsHint": "Adjust bonuses and click the die to roll when adventure calls.",
+  "ESSER.Attributes": "Attributes & Skills",
+  "ESSER.AttributesHint": "Assign your core strengths, then choose a training level for each linked skill.",
   "ESSER.RollSkill": "Roll {{label}}",
   "ESSER.Notes": "Notes",
   "ESSER.NotesPlaceholder": "Background beats, allies, goals, scars, and reminders all live here.",
@@ -19,5 +21,23 @@
     "perception": "Perception", "healing": "Healing", "animal": "Animal Handling",
     "spell_arcane": "Spellcasting (Arcane)", "spell_divine": "Spellcasting (Divine)",
     "spell_occult": "Spellcasting (Occult)", "spell_primal": "Spellcasting (Primal)"
+  },
+  "ESSER.Attribute": {
+    "might": "Might",
+    "agility": "Agility",
+    "mind": "Mind",
+    "charm": "Charm"
+  },
+  "ESSER.AttributeDescription": {
+    "might": "Strength, endurance, and prowess in melee challenges.",
+    "agility": "Dexterity, speed, stealth, and ranged attacks.",
+    "mind": "Intelligence, lore mastery, survival, and spellcraft.",
+    "charm": "Persuasion, trickery, animal bonds, and social presence."
+  },
+  "ESSER.SkillRank": {
+    "untrained": "Untrained (+0)",
+    "skilled": "Skilled (+2)",
+    "expert": "Expert (+4)",
+    "master": "Master (+6)"
   }
 }

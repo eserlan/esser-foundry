@@ -12,27 +12,79 @@ Hooks.once("init", async function () {
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
+const SKILL_LABELS = {
+  athletics: "Athletics", acrobatics: "Acrobatics", endurance: "Endurance", melee: "Melee",
+  ranged: "Ranged", unarmed: "Unarmed", stealth: "Stealth", thievery: "Thievery",
+  nature: "Nature", survival: "Survival", crafting: "Crafting", lore: "Lore",
+  persuasion: "Persuasion", deception: "Deception", intimidation: "Intimidation", performance: "Performance",
+  perception: "Perception", healing: "Healing", animal: "Animal Handling",
+  spell_arcane: "Spellcasting (Arcane)", spell_divine: "Spellcasting (Divine)",
+  spell_occult: "Spellcasting (Occult)", spell_primal: "Spellcasting (Primal)"
+};
+
+const ATTRIBUTE_DEFS = {
+  might: {
+    labelKey: "ESSER.Attribute.might",
+    label: "Might",
+    descriptionKey: "ESSER.AttributeDescription.might",
+    description: "Strength, endurance, melee prowess.",
+    default: 2,
+    skills: ["athletics", "endurance", "melee", "unarmed"]
+  },
+  agility: {
+    labelKey: "ESSER.Attribute.agility",
+    label: "Agility",
+    descriptionKey: "ESSER.AttributeDescription.agility",
+    description: "Dexterity, speed, stealth, ranged attacks.",
+    default: 1,
+    skills: ["acrobatics", "stealth", "thievery", "ranged"]
+  },
+  mind: {
+    labelKey: "ESSER.Attribute.mind",
+    label: "Mind",
+    descriptionKey: "ESSER.AttributeDescription.mind",
+    description: "Intelligence, lore, and the arcane.",
+    default: 0,
+    skills: ["nature", "survival", "crafting", "lore", "perception", "healing",
+      "spell_arcane", "spell_divine", "spell_occult", "spell_primal"]
+  },
+  charm: {
+    labelKey: "ESSER.Attribute.charm",
+    label: "Charm",
+    descriptionKey: "ESSER.AttributeDescription.charm",
+    description: "Persuasion, trickery, and presence.",
+    default: 0,
+    skills: ["persuasion", "deception", "intimidation", "performance", "animal"]
+  }
+};
+
+const SKILL_RANK_DEFS = [
+  { value: 0, labelKey: "ESSER.SkillRank.untrained" },
+  { value: 2, labelKey: "ESSER.SkillRank.skilled" },
+  { value: 4, labelKey: "ESSER.SkillRank.expert" },
+  { value: 6, labelKey: "ESSER.SkillRank.master" }
+];
+
 class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheet) {
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
     classes: ["esser", "sheet", "actor"],
     position: { width: 720, height: 720 },
-    window: { resizable: false }
+    window: { resizable: true }
   });
 
   static PARTS = {
     sheet: {
       template: "systems/esser/templates/actor/actor-sheet.hbs",
-      scrollable: []
+      scrollable: [".sheet-body"]
     }
   };
 
   async _prepareContext(options) {
     const ctx = await super._prepareContext(options);
     ctx.system = this.actor.system;
-    ctx.skills = Object.entries(skillList()).map(([key, label]) => {
-      const localized = game.i18n.localize(`ESSER.Skill.${key}`);
-      return { key, label: localized === `ESSER.Skill.${key}` ? label : localized };
-    });
+    const attributeOptions = attributeRankOptions();
+    const skillOptions = skillRankOptions();
+    ctx.skillGroups = prepareAttributeGroups(this.actor, attributeOptions, skillOptions);
     return ctx;
   }
 
@@ -79,15 +131,60 @@ function clamp(value, min, max) {
 }
 
 function skillList() {
-  return {
-    athletics: "Athletics", acrobatics: "Acrobatics", endurance: "Endurance", melee: "Melee",
-    ranged: "Ranged", unarmed: "Unarmed", stealth: "Stealth", thievery: "Thievery",
-    nature: "Nature", survival: "Survival", crafting: "Crafting", lore: "Lore",
-    persuasion: "Persuasion", deception: "Deception", intimidation: "Intimidation", performance: "Performance",
-    perception: "Perception", healing: "Healing", animal: "Animal Handling",
-    spell_arcane: "Spellcasting (Arcane)", spell_divine: "Spellcasting (Divine)",
-    spell_occult: "Spellcasting (Occult)", spell_primal: "Spellcasting (Primal)"
-  };
+  return foundry.utils.deepClone(SKILL_LABELS);
+}
+
+function attributeRankOptions() {
+  return [2, 1, 0].map((value) => ({ value, label: formatModifier(value) }));
+}
+
+function skillRankOptions() {
+  return SKILL_RANK_DEFS.map((rank) => ({
+    value: rank.value,
+    label: game.i18n.localize(rank.labelKey)
+  }));
+}
+
+function prepareAttributeGroups(actor, attributeOptions, skillOptions) {
+  return Object.entries(ATTRIBUTE_DEFS).map(([key, def]) => {
+    const label = localizeOrFallback(def.labelKey, def.label);
+    const description = localizeOrFallback(def.descriptionKey, def.description);
+    const currentValue = Number(actor.system.attributes?.[key] ?? def.default ?? 0);
+    return {
+      key,
+      label,
+      description,
+      value: currentValue,
+      displayValue: formatModifier(currentValue),
+      ranks: attributeOptions.map((option) => ({
+        ...option,
+        selected: option.value === currentValue
+      })),
+      skills: def.skills.map((skillKey) => {
+        const skillLabel = localizeOrFallback(`ESSER.Skill.${skillKey}`, SKILL_LABELS[skillKey] ?? skillKey);
+        const skillValue = Number(actor.system.skills?.[skillKey] ?? 0);
+        return {
+          key: skillKey,
+          label: skillLabel,
+          value: skillValue,
+          ranks: skillOptions.map((option) => ({
+            ...option,
+            selected: option.value === skillValue
+          }))
+        };
+      })
+    };
+  });
+}
+
+function localizeOrFallback(key, fallback) {
+  const localized = game.i18n.localize(key);
+  if (localized === key) return fallback;
+  return localized;
+}
+
+function formatModifier(value) {
+  return value >= 0 ? `+${value}` : `${value}`;
 }
 
 export async function rollSkill(actor, skill, { flavor = "" } = {}) {
