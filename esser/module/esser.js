@@ -1,24 +1,31 @@
 // module/esser.js
 Hooks.once("init", async function () {
   console.log("ESSER | Initialising");
-  // Register the actor sheet
-  Actors.unregisterSheet("core", ActorSheet);
-  Actors.registerSheet("esser", EsserActorSheet, { types: ["character"], makeDefault: true });
+  const ActorsCollection = foundry.documents.collections.Actors;
+  const CoreActorSheet = foundry.appv1?.sheets?.ActorSheet;
+
+  if (CoreActorSheet) {
+    ActorsCollection.unregisterSheet("core", CoreActorSheet);
+  }
+  ActorsCollection.registerSheet("esser", EsserActorSheet, { types: ["character"], makeDefault: true });
 });
 
-class EsserActorSheet extends ActorSheet {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ["esser", "sheet", "actor"],
-      template: "systems/esser/templates/actor/actor-sheet.hbs",
-      width: 720,
-      height: 720,
-      tabs: []
-    });
-  }
+class EsserActorSheet extends foundry.applications.sheets.ActorSheet {
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    classes: ["esser", "sheet", "actor"],
+    position: { width: 720, height: 720 },
+    window: { resizable: false }
+  });
 
-  getData(options) {
-    const ctx = super.getData(options);
+  static PARTS = {
+    sheet: {
+      template: "systems/esser/templates/actor/actor-sheet.hbs",
+      scrollable: []
+    }
+  };
+
+  async _prepareContext(options) {
+    const ctx = await super._prepareContext(options);
     ctx.system = this.actor.system;
     ctx.skills = Object.entries(skillList()).map(([key, label]) => {
       const localized = game.i18n.localize(`ESSER.Skill.${key}`);
@@ -27,14 +34,31 @@ class EsserActorSheet extends ActorSheet {
     return ctx;
   }
 
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find("[data-action='roll-skill']").on("click", (ev) => {
-      const skill = ev.currentTarget.dataset.skill;
-      rollSkill(this.actor, skill, { flavor: game.i18n.localize(`ESSER.Skill.${skill}`) });
+  _attachPartListeners(partId, htmlElement, options) {
+    super._attachPartListeners(partId, htmlElement, options);
+    if (partId !== "sheet") return;
+
+    htmlElement.querySelectorAll("[data-action='roll-skill']").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const skill = event.currentTarget.dataset.skill;
+        rollSkill(this.actor, skill, { flavor: game.i18n.localize(`ESSER.Skill.${skill}`) });
+      });
     });
-    html.find("[data-action='strike-inc']").on("click", () => this._modStrikes(1));
-    html.find("[data-action='strike-dec']").on("click", () => this._modStrikes(-1));
+
+    htmlElement.querySelectorAll("[data-action='strike-inc']").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._modStrikes(1);
+      });
+    });
+
+    htmlElement.querySelectorAll("[data-action='strike-dec']").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._modStrikes(-1);
+      });
+    });
   }
 
   async _modStrikes(delta) {
