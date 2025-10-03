@@ -177,14 +177,15 @@ function prepareAttributeGroups(actor, attributeOptions, skillOptions) {
       })),
       skills: def.skills.map((skillKey) => {
         const skillLabel = localizeOrFallback(`ESSER.Skill.${skillKey}`, SKILL_LABELS[skillKey] ?? skillKey);
-        const skillValue = Number(actor.system.skills?.[skillKey] ?? 0);
+        const skillRaw = actor.system.skills?.[skillKey];
+        const { bonus: skillValue, found: hasSkillValue } = extractSkillBonus(skillRaw);
         return {
           key: skillKey,
           label: skillLabel,
-          value: skillValue,
+          value: hasSkillValue ? skillValue : 0,
           ranks: skillOptions.map((option) => ({
             ...option,
-            selected: option.value === skillValue
+            selected: option.value === (hasSkillValue ? skillValue : 0)
           }))
         };
       })
@@ -269,12 +270,24 @@ function extractSkillBonus(value) {
   }
 
   if (typeof value === "object") {
+    let bonusTotal = 0;
+    let bonusFound = false;
     for (const key of ["bonus", "value", "rank", "score"]) {
-      if (Object.prototype.hasOwnProperty.call(value, key)) {
-        const result = extractSkillBonus(value[key]);
-        if (result.found) return result;
+      if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
+
+      const result = extractSkillBonus(value[key]);
+      if (!result.found) continue;
+
+      if (key === "bonus") {
+        bonusTotal += result.bonus;
+        bonusFound = true;
+        continue;
       }
+
+      return { bonus: result.bonus + bonusTotal, found: true };
     }
+
+    if (bonusFound) return { bonus: bonusTotal, found: true };
   }
 
   return { bonus: 0, found: false };
