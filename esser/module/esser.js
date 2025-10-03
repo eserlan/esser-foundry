@@ -10,7 +10,9 @@ Hooks.once("init", async function () {
   ActorsCollection.registerSheet("esser", EsserActorSheet, { types: ["character"], makeDefault: true });
 });
 
-class EsserActorSheet extends foundry.applications.sheets.ActorSheet {
+const { HandlebarsApplicationMixin } = foundry.applications.api;
+
+class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheet) {
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
     classes: ["esser", "sheet", "actor"],
     position: { width: 720, height: 720 },

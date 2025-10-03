@@ -3,7 +3,7 @@
   "title": "ESSER – Espen’s Super Simple Easy RPG",
   "type": "system",
   "description": "A rules-light, theatre-of-the-mind RPG system for Foundry VTT. d20 + bonuses, Strikes, and simple opposed combat.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "compatibility": { "minimum": "13", "verified": "13" },
   "authors": [{ "name": "Espen + Codex" }],
   "url": "https://example.com/esser",
