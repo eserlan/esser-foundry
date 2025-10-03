@@ -17,6 +17,15 @@
   backdrop-filter: blur(4px);
 }
 
+.esser-sheet .sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
 .card {
   background: var(--esser-card-bg);
   border: 1px solid var(--esser-card-border);
@@ -246,10 +255,59 @@
   color: rgba(15, 23, 42, 0.55);
 }
 
-.skills {
+.attributes {
   padding: 20px;
   display: flex;
   flex-direction: column;
+}
+
+.attribute-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.attribute-block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.03);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.attribute-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attribute-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.attribute-label {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.attribute-select {
+  min-width: 84px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.attribute-description {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(15, 23, 42, 0.6);
 }
 
 .skills-grid {
@@ -259,7 +317,7 @@
 
 .skill-row {
   display: grid;
-  grid-template-columns: 44px 1fr minmax(70px, 90px);
+  grid-template-columns: 44px 1fr minmax(120px, 150px);
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
@@ -312,14 +370,14 @@
   color: rgba(15, 23, 42, 0.45);
 }
 
-.skill-input {
+.skill-select {
   width: 100%;
   border: 1px solid rgba(15, 23, 42, 0.2);
   border-radius: 10px;
   padding: 6px 8px;
-  text-align: center;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .notes {
@@ -364,6 +422,10 @@
   .sheet-columns {
     grid-template-columns: 1fr;
   }
+
+  .attribute-groups {
+    gap: 12px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -377,6 +439,6 @@
   }
 
   .skill-row {
-    grid-template-columns: 40px 1fr 70px;
+    grid-template-columns: 40px 1fr 110px;
   }
 }

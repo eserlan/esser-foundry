@@ -65,32 +65,52 @@
     </header>
 
     <section class="sheet-columns">
-      <section class="skills card">
+      <section class="attributes card">
         <header class="section-header">
-          <h2>{{localize "ESSER.Skills"}}</h2>
-          <p>{{localize "ESSER.SkillsHint"}}</p>
+          <h2>{{localize "ESSER.Attributes"}}</h2>
+          <p>{{localize "ESSER.AttributesHint"}}</p>
         </header>
-        <div class="skills-grid">
-          {{#each skills}}
-          <div class="skill-row">
-            <button
-              type="button"
-              class="roll-button"
-              data-action="roll-skill"
-              data-skill="{{this.key}}"
-              aria-label="{{localize 'ESSER.RollSkill' label=this.label}}"
-            >🎲</button>
-            <div class="skill-info">
-              <span class="skill-label">{{this.label}}</span>
-              <span class="skill-key">{{this.key}}</span>
+        <div class="attribute-groups">
+          {{#each skillGroups}}
+          <article class="attribute-block">
+            <header class="attribute-header">
+              <div class="attribute-meta">
+                <label class="attribute-label" for="esser-actor-attribute-{{../actor._id}}-{{this.key}}">{{this.label}}</label>
+                <select
+                  id="esser-actor-attribute-{{../actor._id}}-{{this.key}}"
+                  class="attribute-select"
+                  name="system.attributes.{{this.key}}"
+                >
+                  {{#each this.ranks}}
+                  <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                  {{/each}}
+                </select>
+              </div>
+              <p class="attribute-description">{{this.description}}</p>
+            </header>
+            <div class="skills-grid">
+              {{#each this.skills}}
+              <div class="skill-row">
+                <button
+                  type="button"
+                  class="roll-button"
+                  data-action="roll-skill"
+                  data-skill="{{this.key}}"
+                  aria-label="{{localize 'ESSER.RollSkill' label=this.label}}"
+                >🎲</button>
+                <div class="skill-info">
+                  <span class="skill-label">{{this.label}}</span>
+                  <span class="skill-key">{{this.key}}</span>
+                </div>
+                <select class="skill-select" name="system.skills.{{this.key}}">
+                  {{#each this.ranks}}
+                  <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                  {{/each}}
+                </select>
+              </div>
+              {{/each}}
             </div>
-            <input
-              class="skill-input"
-              type="number"
-              name="system.skills.{{this.key}}"
-              value="{{lookup ../system.skills this.key}}"
-            />
-          </div>
+          </article>
           {{/each}}
         </div>
       </section>

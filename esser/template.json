@@ -7,6 +7,12 @@
         "notes": "",
         "strikes": 0,
         "maxStrikes": 3,
+        "attributes": {
+          "might": 2,
+          "agility": 1,
+          "mind": 0,
+          "charm": 0
+        },
         "skills": {
           "athletics": 0, "acrobatics": 0, "endurance": 0, "melee": 0, "ranged": 0, "unarmed": 0, "stealth": 0, "thievery": 0,
           "nature": 0, "survival": 0, "crafting": 0, "lore": 0,
