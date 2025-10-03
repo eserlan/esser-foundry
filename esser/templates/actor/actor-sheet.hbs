@@ -3,7 +3,16 @@
     <header class="esser-header card">
       <div class="header-grid">
         <div class="portrait-frame">
-          <img src="{{actor.img}}" data-edit="img" alt="{{actor.name}}" title="{{localize 'ESSER.CharacterPortrait'}}" />
+          <button
+            type="button"
+            class="portrait-button"
+            data-action="edit-image"
+            data-edit="img"
+            aria-label="{{localize 'ESSER.CharacterPortrait'}}"
+            title="{{localize 'ESSER.CharacterPortrait'}}"
+          >
+            <img src="{{actor.img}}" alt="{{actor.name}}" />
+          </button>
         </div>
         <div class="identity">
           <label class="field-label" for="esser-actor-name-{{actor._id}}">{{localize "ESSER.CharacterName"}}</label>
