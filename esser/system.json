@@ -1,9 +1,8 @@
 {
   "id": "esser",
   "title": "ESSER – Espen’s Super Simple Easy RPG",
-  "type": "system",
   "description": "A rules-light, theatre-of-the-mind RPG system for Foundry VTT. d20 + bonuses, Strikes, and simple opposed combat.",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "compatibility": { "minimum": "13", "verified": "13" },
   "authors": [{ "name": "Espen + Codex" }],
   "url": "https://example.com/esser",
@@ -12,6 +11,7 @@
   "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
   "packs": [
     {
+      "name": "adventure-frames",
       "label": "ESSER Adventure Frames",
       "type": "Scene",
       "path": "packs/adventure-frames.db",
@@ -19,8 +19,14 @@
       "private": false
     }
   ],
-  "gridDistance": 1,
-  "gridUnits": "unit",
+  "grid": {
+    "distance": 1,
+    "units": "unit"
+  },
   "primaryTokenAttribute": null,
-  "styles": ["styles/esser.css"]
+  "styles": [
+    {
+      "src": "styles/esser.css"
+    }
+  ]
 }
