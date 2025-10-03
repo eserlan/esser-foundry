@@ -96,6 +96,7 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
 
   async _prepareContext(options) {
     const ctx = await super._prepareContext(options);
+    ctx.actor = this.actor;
     ctx.system = this.actor.system;
     const attributeOptions = attributeRankOptions();
     const skillOptions = skillRankOptions();
