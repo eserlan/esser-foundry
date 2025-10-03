@@ -1,31 +1,108 @@
 <form class="esser-sheet {{cssClass}}" autocomplete="off">
   <section class="sheet-body">
-    <header class="esser-header">
-      <h1>{{actor.name}}</h1>
-      <div class="concept">
-        <label>{{localize "ESSER.Concept"}}</label>
-        <input type="text" name="system.concept" value="{{system.concept}}" />
-      </div>
-      <div class="strikes">
-        <label>{{localize "ESSER.Strikes"}}</label>
-        <button type="button" data-action="strike-dec">−</button>
-        <input type="number" name="system.strikes" value="{{system.strikes}}" min="0" max="{{system.maxStrikes}}" />
-        <button type="button" data-action="strike-inc">+</button>
-        <span>/ {{system.maxStrikes}}</span>
+    <header class="esser-header card">
+      <div class="header-grid">
+        <div class="portrait-frame">
+          <img src="{{actor.img}}" data-edit="img" alt="{{actor.name}}" title="{{localize 'ESSER.CharacterPortrait'}}" />
+        </div>
+        <div class="identity">
+          <label class="field-label" for="esser-actor-name-{{actor._id}}">{{localize "ESSER.CharacterName"}}</label>
+          <input
+            id="esser-actor-name-{{actor._id}}"
+            class="actor-name"
+            name="name"
+            type="text"
+            value="{{actor.name}}"
+            placeholder="{{localize 'ESSER.CharacterName'}}"
+          />
+
+          <label class="field-label" for="esser-actor-concept-{{actor._id}}">{{localize "ESSER.Concept"}}</label>
+          <input
+            id="esser-actor-concept-{{actor._id}}"
+            class="actor-concept"
+            type="text"
+            name="system.concept"
+            value="{{system.concept}}"
+            placeholder="{{localize 'ESSER.Concept'}}"
+          />
+        </div>
+        <div class="strikes-panel">
+          <span class="panel-label">{{localize "ESSER.Strikes"}}</span>
+          <div class="strike-controls">
+            <button type="button" class="strike-button" data-action="strike-dec" aria-label="{{localize 'ESSER.ReduceStrike'}}">−</button>
+            <input
+              class="strike-value"
+              type="number"
+              name="system.strikes"
+              value="{{system.strikes}}"
+              min="0"
+              max="{{system.maxStrikes}}"
+            />
+            <button type="button" class="strike-button" data-action="strike-inc" aria-label="{{localize 'ESSER.IncreaseStrike'}}">+</button>
+          </div>
+          <meter
+            class="strike-meter"
+            min="0"
+            max="{{system.maxStrikes}}"
+            value="{{system.strikes}}"
+            title="{{system.strikes}} / {{system.maxStrikes}}"
+          ></meter>
+          <div class="strike-meta">
+            <label class="max-strikes" for="esser-actor-max-strikes-{{actor._id}}">
+              <span>{{localize "ESSER.MaxStrikes"}}</span>
+              <input
+                id="esser-actor-max-strikes-{{actor._id}}"
+                type="number"
+                name="system.maxStrikes"
+                value="{{system.maxStrikes}}"
+                min="1"
+              />
+            </label>
+            <span class="strike-count">{{system.strikes}} / {{system.maxStrikes}}</span>
+          </div>
+        </div>
       </div>
     </header>
 
-    <section class="skills">
-      <h2>{{localize "ESSER.Skills"}}</h2>
-      <div class="grid">
-        {{#each skills}}
-        <div class="row">
-          <button type="button" data-action="roll-skill" data-skill="{{this.key}}">🎲</button>
-          <span class="label">{{this.label}}</span>
-          <input type="number" name="system.skills.{{this.key}}" value="{{lookup ../system.skills this.key}}" />
+    <section class="sheet-columns">
+      <section class="skills card">
+        <header class="section-header">
+          <h2>{{localize "ESSER.Skills"}}</h2>
+          <p>{{localize "ESSER.SkillsHint"}}</p>
+        </header>
+        <div class="skills-grid">
+          {{#each skills}}
+          <div class="skill-row">
+            <button
+              type="button"
+              class="roll-button"
+              data-action="roll-skill"
+              data-skill="{{this.key}}"
+              aria-label="{{localize 'ESSER.RollSkill' label=this.label}}"
+            >🎲</button>
+            <div class="skill-info">
+              <span class="skill-label">{{this.label}}</span>
+              <span class="skill-key">{{this.key}}</span>
+            </div>
+            <input
+              class="skill-input"
+              type="number"
+              name="system.skills.{{this.key}}"
+              value="{{lookup ../system.skills this.key}}"
+            />
+          </div>
+          {{/each}}
         </div>
-        {{/each}}
-      </div>
+      </section>
+
+      <aside class="notes card">
+        <h2>{{localize "ESSER.Notes"}}</h2>
+        <textarea
+          name="system.notes"
+          rows="12"
+          placeholder="{{localize 'ESSER.NotesPlaceholder'}}"
+        >{{system.notes}}</textarea>
+      </aside>
     </section>
   </section>
 </form>

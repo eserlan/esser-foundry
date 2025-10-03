@@ -11,7 +11,9 @@ class EsserActorSheet extends ActorSheet {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["esser", "sheet", "actor"],
       template: "systems/esser/templates/actor/actor-sheet.hbs",
-      width: 520, height: 640, tabs: []
+      width: 720,
+      height: 720,
+      tabs: []
     });
   }
 
