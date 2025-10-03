@@ -46,6 +46,8 @@
 }
 
 .esser-header {
+  flex: 0 0 auto;
+  min-height: 160px;
   padding: 16px;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(252, 211, 77, 0.2));
   position: relative;
@@ -119,12 +121,19 @@
   font-size: 1.4rem;
   font-weight: 600;
   transition: border-color 150ms ease;
+  color: rgba(15, 23, 42, 0.85);
 }
 
 .actor-concept {
   font-size: 0.95rem;
   font-weight: 500;
   letter-spacing: 0.01em;
+}
+
+.esser-sheet input,
+.esser-sheet select,
+.esser-sheet textarea {
+  color: rgba(15, 23, 42, 0.85);
 }
 
 .strikes-panel {
