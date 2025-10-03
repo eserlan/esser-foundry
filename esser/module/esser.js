@@ -108,8 +108,20 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
     if (partId !== "sheet") return;
 
     htmlElement.querySelectorAll("input[name], select[name], textarea[name]").forEach((element) => {
-      element.addEventListener("change", () => {
-        this.submit({ preventClose: true }).catch((error) => console.error(error));
+      element.addEventListener("change", (event) => {
+        const target = event.currentTarget;
+        if (!target?.name) return;
+
+        try {
+          const update = {};
+          const value = coerceInputValue(target);
+          if (value === undefined) return;
+
+          foundry.utils.setProperty(update, target.name, value);
+          this.actor.update(update).catch((error) => console.error(error));
+        } catch (error) {
+          console.error(error);
+        }
       });
     });
 
@@ -146,11 +158,7 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
   }
 
   async _updateObject(event, formData) {
-    const raw = typeof formData?.toObject === "function"
-      ? formData.toObject()
-      : (formData?.object ?? formData);
-    const expanded = foundry.utils.expandObject(raw);
-    delete expanded._id;
+    const expanded = expandSubmitData(formData);
     return this.actor.update(expanded);
   }
 }
@@ -158,6 +166,38 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
 // ---------- Helpers ----------
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function expandSubmitData(formData) {
+  const raw = typeof formData?.toObject === "function"
+    ? formData.toObject()
+    : (formData?.object ?? formData);
+  const expanded = foundry.utils.expandObject(foundry.utils.deepClone(raw));
+  delete expanded._id;
+  return expanded;
+}
+
+function coerceInputValue(element) {
+  if (!(element instanceof HTMLElement)) return undefined;
+
+  if (element.type === "checkbox") {
+    return element.checked;
+  }
+
+  const dtype = element.dataset.dtype ?? "String";
+  const rawValue = element.value;
+
+  switch (dtype) {
+    case "Number": {
+      if (rawValue === "" || rawValue === null || rawValue === undefined) return 0;
+      const parsed = Number(rawValue);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+    case "Boolean":
+      return rawValue === "true";
+    default:
+      return rawValue;
+  }
 }
 
 function skillList() {
