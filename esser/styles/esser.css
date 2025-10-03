@@ -3,6 +3,16 @@
   color: var(--color-text-dark-primary, #1f2933);
 }
 
+.esser.sheet.actor .window-content {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+.esser.sheet.actor .window-content > form {
+  flex: 1;
+}
+
 .esser-sheet {
   --esser-accent: var(--color-primary, #f97316);
   --esser-card-bg: rgba(255, 255, 255, 0.9);
@@ -10,8 +20,9 @@
   --esser-card-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 18px;
+  gap: 12px;
+  padding: 14px;
+  height: 100%;
   background: linear-gradient(135deg, rgba(249, 250, 251, 0.95), rgba(235, 244, 255, 0.85));
   border-radius: 18px;
   backdrop-filter: blur(4px);
@@ -20,10 +31,10 @@
 .esser-sheet .sheet-body {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
   flex: 1;
   overflow-y: auto;
-  padding-right: 6px;
+  padding-right: 4px;
 }
 
 .card {
@@ -31,11 +42,11 @@
   border: 1px solid var(--esser-card-border);
   border-radius: 14px;
   box-shadow: var(--esser-card-shadow);
-  padding: 16px;
+  padding: 12px;
 }
 
 .esser-header {
-  padding: 20px;
+  padding: 16px;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(252, 211, 77, 0.2));
   position: relative;
   overflow: hidden;
@@ -52,8 +63,8 @@
 .header-grid {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(120px, 160px) 1.4fr minmax(220px, 260px);
-  gap: 20px;
+  grid-template-columns: minmax(110px, 140px) 1.2fr minmax(200px, 220px);
+  gap: 16px;
   align-items: stretch;
   z-index: 1;
 }
@@ -86,12 +97,12 @@
 .identity {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 8px;
   align-content: flex-start;
 }
 
 .field-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 600;
@@ -103,33 +114,27 @@
   width: 100%;
   border: none;
   border-bottom: 2px solid rgba(15, 23, 42, 0.1);
-  padding: 6px 2px;
+  padding: 4px 2px;
   background: transparent;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: 600;
   transition: border-color 150ms ease;
 }
 
 .actor-concept {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   letter-spacing: 0.01em;
-}
-
-.actor-name:focus,
-.actor-concept:focus {
-  outline: none;
-  border-color: var(--esser-accent);
 }
 
 .strikes-panel {
   display: grid;
   grid-template-rows: auto auto auto;
-  gap: 10px;
+  gap: 8px;
   align-content: start;
   background: rgba(249, 115, 22, 0.08);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.12);
 }
 
@@ -144,12 +149,12 @@
 .strike-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .strike-button {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: none;
   background: rgba(249, 115, 22, 0.16);
@@ -231,8 +236,8 @@
 
 .sheet-columns {
   display: grid;
-  grid-template-columns: minmax(260px, 2.5fr) minmax(220px, 1.5fr);
-  gap: 20px;
+  grid-template-columns: minmax(220px, 2fr) minmax(180px, 1.2fr);
+  gap: 16px;
 }
 
 .section-header {
@@ -256,21 +261,21 @@
 }
 
 .attributes {
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
 }
 
 .attribute-groups {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .attribute-block {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
+  gap: 12px;
+  padding: 12px;
   border-radius: 14px;
   background: rgba(15, 23, 42, 0.03);
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
@@ -286,20 +291,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .attribute-label {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   color: rgba(15, 23, 42, 0.85);
 }
 
 .attribute-select {
-  min-width: 84px;
+  min-width: 72px;
   border: 1px solid rgba(15, 23, 42, 0.2);
-  border-radius: 10px;
-  padding: 6px 8px;
+  border-radius: 8px;
+  padding: 4px 6px;
   font-weight: 600;
   background: rgba(255, 255, 255, 0.92);
 }
@@ -312,16 +317,16 @@
 
 .skills-grid {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .skill-row {
   display: grid;
-  grid-template-columns: 44px 1fr minmax(120px, 150px);
+  grid-template-columns: 38px 1fr minmax(110px, 130px);
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
   background: rgba(15, 23, 42, 0.04);
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
   transition: transform 150ms ease, box-shadow 150ms ease;
@@ -333,9 +338,9 @@
 }
 
 .roll-button {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   border: none;
   background: rgba(249, 115, 22, 0.18);
   font-size: 1.1rem;
@@ -373,10 +378,10 @@
 .skill-select {
   width: 100%;
   border: 1px solid rgba(15, 23, 42, 0.2);
-  border-radius: 10px;
-  padding: 6px 8px;
+  border-radius: 8px;
+  padding: 4px 6px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   background: rgba(255, 255, 255, 0.92);
 }
 
@@ -395,18 +400,21 @@
 .notes textarea {
   width: 100%;
   border: 1px solid rgba(15, 23, 42, 0.16);
-  border-radius: 12px;
-  padding: 12px;
-  font-size: 0.95rem;
-  line-height: 1.5;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 0.9rem;
+  line-height: 1.4;
   resize: vertical;
   background: rgba(255, 255, 255, 0.82);
-  min-height: 200px;
+  min-height: 160px;
 }
 
-.notes textarea:focus {
-  outline: 2px solid rgba(249, 115, 22, 0.4);
-  border-color: rgba(249, 115, 22, 0.5);
+.esser-sheet input:focus,
+.esser-sheet select:focus,
+.esser-sheet textarea:focus {
+  outline: none;
+  border-color: #000;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.65);
 }
 
 @media (max-width: 960px) {
@@ -430,15 +438,15 @@
 
 @media (max-width: 640px) {
   .esser-sheet {
-    padding: 14px;
-    gap: 12px;
+    padding: 12px;
+    gap: 10px;
   }
 
   .card {
-    padding: 14px;
+    padding: 12px;
   }
 
   .skill-row {
-    grid-template-columns: 40px 1fr 110px;
+    grid-template-columns: 34px 1fr 100px;
   }
 }

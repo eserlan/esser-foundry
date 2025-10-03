@@ -65,6 +65,13 @@ const SKILL_RANK_DEFS = [
   { value: 6, labelKey: "ESSER.SkillRank.master" }
 ];
 
+const SKILL_TO_ATTRIBUTE = Object.entries(ATTRIBUTE_DEFS).reduce((acc, [attributeKey, def]) => {
+  for (const skill of def.skills) {
+    acc[skill] = attributeKey;
+  }
+  return acc;
+}, {});
+
 class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheet) {
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
     classes: ["esser", "sheet", "actor"],
@@ -188,8 +195,15 @@ function formatModifier(value) {
 }
 
 export async function rollSkill(actor, skill, { flavor = "" } = {}) {
-  const bonus = Number(actor.system.skills?.[skill] ?? 0);
-  const roll = await (new Roll(`1d20 + ${bonus}`)).evaluate();
+  const skillBonus = Number(actor.system.skills?.[skill] ?? 0);
+  const attributeKey = SKILL_TO_ATTRIBUTE[skill];
+  const attributeDef = attributeKey ? ATTRIBUTE_DEFS[attributeKey] : null;
+  const attributeBonus = attributeKey
+    ? Number(actor.system.attributes?.[attributeKey] ?? attributeDef?.default ?? 0)
+    : 0;
+  const totalBonus = attributeBonus + skillBonus;
+
+  const roll = await (new Roll(`1d20 + ${totalBonus}`)).evaluate();
   const total = roll.total;
 
   // Results ladder
@@ -199,9 +213,17 @@ export async function rollSkill(actor, skill, { flavor = "" } = {}) {
   else if (total >= 10) result = "Success with a cost";
   else result = "Failure with complication";
 
+  const attributeLabel = attributeDef ? localizeOrFallback(attributeDef.labelKey, attributeDef.label) : null;
+  const skillLabel = localizeOrFallback(`ESSER.Skill.${skill}`, SKILL_LABELS[skill] ?? skill);
+
+  const breakdown = [
+    attributeLabel ? `${attributeLabel} ${formatModifier(attributeBonus)}` : null,
+    `${skillLabel} ${formatModifier(skillBonus)}`
+  ].filter(Boolean).join(", ");
+
   roll.toMessage({
     speaker: ChatMessage.getSpeaker({ actor }),
-    flavor: `${actor.name} rolls ${flavor || skill} (bonus ${bonus >= 0 ? "+" : ""}${bonus}) → <b>${result}</b>`
+    flavor: `${actor.name} rolls ${flavor || skill} (bonus ${formatModifier(totalBonus)}${breakdown ? ` • ${breakdown}` : ""}) → <b>${result}</b>`
   });
 
   return { roll, total, result };
