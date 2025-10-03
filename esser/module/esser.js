@@ -107,6 +107,12 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
     super._attachPartListeners(partId, htmlElement, options);
     if (partId !== "sheet") return;
 
+    htmlElement.querySelectorAll("input[name], select[name], textarea[name]").forEach((element) => {
+      element.addEventListener("change", () => {
+        this.submit({ preventClose: true }).catch((error) => console.error(error));
+      });
+    });
+
     htmlElement.querySelectorAll("[data-action='roll-skill']").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.preventDefault();
@@ -137,6 +143,15 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
     if (s >= maxStrikes) {
       ui.notifications.warn(`${this.actor.name} is OUT (3 Strikes).`);
     }
+  }
+
+  async _updateObject(event, formData) {
+    const raw = typeof formData?.toObject === "function"
+      ? formData.toObject()
+      : (formData?.object ?? formData);
+    const expanded = foundry.utils.expandObject(raw);
+    delete expanded._id;
+    return this.actor.update(expanded);
   }
 }
 
