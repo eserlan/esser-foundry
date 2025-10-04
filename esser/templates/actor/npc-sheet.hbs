@@ -13,15 +13,30 @@
           >
             <img src="{{actor.img}}" alt="{{actor.name}}" />
           </button>
-          <button
-            type="button"
-            class="portrait-viewer"
-            data-action="view-image"
-            aria-label="{{localize 'ESSER.ViewPortrait'}}"
-            title="{{localize 'ESSER.ViewPortrait'}}"
-          >
-            <span aria-hidden="true">🖼️</span>
-          </button>
+          <div class="portrait-actions" aria-hidden="{{#if actor.img}}false{{else}}true{{/if}}">
+            <button
+              type="button"
+              class="portrait-action portrait-preview"
+              data-action="preview-image"
+              aria-label="{{localize 'ESSER.PreviewPortrait'}}"
+              title="{{localize 'ESSER.PreviewPortrait'}}"
+              {{#unless actor.img}}disabled{{/unless}}
+            >
+              <span aria-hidden="true">🖼️</span>
+            </button>
+            {{#if canShowImage}}
+            <button
+              type="button"
+              class="portrait-action portrait-share"
+              data-action="show-image"
+              aria-label="{{localize 'ESSER.ShowToPlayers'}}"
+              title="{{localize 'ESSER.ShowToPlayers'}}"
+              {{#unless actor.img}}disabled{{/unless}}
+            >
+              <span aria-hidden="true">📢</span>
+            </button>
+            {{/if}}
+          </div>
         </div>
         <div class="npc-identity">
           <label class="field-label" for="esser-npc-name-{{actor._id}}">{{localize "ESSER.CharacterName"}}</label>
