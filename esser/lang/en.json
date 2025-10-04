@@ -65,7 +65,13 @@
     "CopyFailed": "Could not copy summary. Copy it manually.",
     "NoSkillSelected": "Choose a skill before rolling.",
     "TargetRequired": "Target a defender token for the opposed check.",
-    "PasteImported": "NPC summary pasted successfully.",
-    "PasteUnrecognized": "Could not understand the pasted NPC summary."
+    "PasteImported": "Stat block imported successfully.",
+    "PasteUnrecognized": "Could not understand the provided stat block.",
+    "StatBlockHeader": "Stat Block",
+    "StatBlockHint": "Paste a summary line (or two) from your reference and we'll fill in the details.",
+    "StatBlockPlaceholder": "Goblin Sneak – Tier I, +2, Strikes 0/3, Pack tactics",
+    "StatBlockImport": "Import stat block",
+    "StatBlockShortcut": "Press Ctrl+Enter (or ⌘+Enter) after pasting to import.",
+    "StatBlockEmpty": "Paste a stat block summary before importing."
   }
 }
