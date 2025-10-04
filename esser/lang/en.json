@@ -43,5 +43,27 @@
     "skilled": "Skilled (+2)",
     "expert": "Expert (+4)",
     "master": "Master (+6)"
+  },
+  "ESSER.NPC": {
+    "Tier": "Tier",
+    "TierPlaceholder": "Tier I, II, Elite...",
+    "BaseBonus": "Base Bonus",
+    "CoreTrait": "Core Trait",
+    "CoreTraitPlaceholder": "Pack tactics, rusted armor, venomous bite...",
+    "CopySummary": "Copy summary",
+    "ConceptPlaceholder": "How they fight, move, bargain, or menace.",
+    "SignatureSkills": "Signature Skills",
+    "SignatureHint": "Pick the few checks this foe shines at. Rolls add the base bonus plus the extra listed here.",
+    "Skill": "Skill",
+    "SelectSkill": "Select a skill",
+    "ExtraBonus": "Extra Bonus",
+    "TotalBonus": "Total Bonus",
+    "Roll": "Roll",
+    "Opposed": "Opposed",
+    "NotesPlaceholder": "Weak spots, tactics, treasure, or battlefield details.",
+    "SummaryCopied": "Summary copied to clipboard.",
+    "CopyFailed": "Could not copy summary. Copy it manually.",
+    "NoSkillSelected": "Choose a skill before rolling.",
+    "TargetRequired": "Target a defender token for the opposed check."
   }
 }

@@ -1,6 +1,6 @@
 {
   "Actor": {
-    "types": ["character"],
+    "types": ["character", "npc"],
     "templates": {
       "base": {
         "concept": "",
@@ -22,7 +22,24 @@
         }
       }
     },
-    "character": { "templates": ["base"] }
+    "character": { "templates": ["base"] },
+    "npc": {
+      "concept": "",
+      "notes": "",
+      "tier": "Standard", 
+      "bonus": 2,
+      "coreTrait": "",
+      "strikes": 0,
+      "maxStrikes": 3,
+      "focus": {
+        "slots": [
+          { "skill": "melee", "extra": 0 },
+          { "skill": "ranged", "extra": 0 },
+          { "skill": "perception", "extra": 0 },
+          { "skill": "intimidation", "extra": 0 }
+        ]
+      }
+    }
   },
   "Item": { "types": [], "templates": {} }
 }
