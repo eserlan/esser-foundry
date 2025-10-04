@@ -68,7 +68,7 @@
     "PasteImported": "Stat block imported successfully.",
     "PasteUnrecognized": "Could not understand the provided stat block.",
     "StatBlockHeader": "Stat Block",
-    "StatBlockHint": "Paste a summary line (or two) from your reference and we'll fill in the details.",
+    "StatBlockHint": "Paste a summary line or a two-line stat block from your reference and we'll fill in the details.",
     "StatBlockPlaceholder": "Goblin Sneak – Tier I, +2, Strikes 0/3, Pack tactics",
     "StatBlockImport": "Import stat block",
     "StatBlockShortcut": "Press Ctrl+Enter (or ⌘+Enter) after pasting to import.",
