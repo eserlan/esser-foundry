@@ -13,6 +13,180 @@ Hooks.once("init", async function () {
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
+const BaseActorSheet = HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheet);
+
+const ActorImageControlsMixin = (Base) => class extends Base {
+  async _onEditActorImage(event) {
+    event.preventDefault();
+    const target = event.currentTarget;
+    const editPath = target?.dataset.edit;
+    if (!editPath) return;
+
+    const current = foundry.utils.getProperty(this.actor, editPath) ?? "";
+
+    const pickerOptions = {
+      type: "image",
+      current,
+      allowUpload: true,
+      callback: async (path) => {
+        const update = {};
+        foundry.utils.setProperty(update, editPath, path);
+        await this.actor.update(update);
+      }
+    };
+
+    const FilePickerCls = foundry?.applications?.apps?.FilePicker?.implementation
+      ?? foundry?.applications?.FilePicker
+      ?? globalThis.FilePicker;
+
+    if (typeof FilePickerCls?.fromUser === "function") {
+      return FilePickerCls.fromUser(pickerOptions);
+    }
+
+    if (typeof FilePickerCls === "function") {
+      const filePicker = new FilePickerCls(pickerOptions);
+      return filePicker.render(true);
+    }
+
+    return this._fallbackImagePrompt(editPath, current);
+  }
+
+  async _onPreviewActorImage(event) {
+    event?.preventDefault?.();
+
+    const img = this.actor?.img;
+    if (!img) {
+      ui.notifications.warn(game.i18n.localize("ESSER.NoPortraitSet"));
+      return null;
+    }
+
+    const title = this.actor?.name ?? game.i18n.localize?.("ESSER.CharacterPortrait") ?? "Portrait";
+    const safeTitle = foundry.utils.escapeHTML?.(title) ?? title;
+    const safeImg = foundry.utils.escapeHTML?.(img) ?? img;
+
+    let previewDialog;
+    const canShare = Boolean(game?.user?.isGM);
+    const buttons = {};
+
+    if (canShare) {
+      buttons.share = {
+        label: game.i18n.localize("ESSER.ShowToPlayers"),
+        callback: async () => {
+          await this._onShowActorImage();
+          return false;
+        }
+      };
+    }
+
+    buttons.close = {
+      label: game.i18n.localize("ESSER.Close"),
+      callback: () => previewDialog?.close?.()
+    };
+
+    const content = `
+      <div class="esser-image-preview-frame">
+        <figure>
+          <img src="${safeImg}" alt="${safeTitle}" />
+          <figcaption>${safeTitle}</figcaption>
+        </figure>
+      </div>
+    `.trim();
+
+    previewDialog = new Dialog({
+      title,
+      content,
+      buttons,
+      default: canShare ? "share" : "close"
+    }, {
+      classes: ["esser", "image-preview-dialog"]
+    });
+
+    previewDialog.render(true);
+    return previewDialog;
+  }
+
+  async _onViewActorImage(event) {
+    return this._onPreviewActorImage(event);
+  }
+
+  async _onShowActorImage(event) {
+    event?.preventDefault?.();
+
+    if (!game?.user?.isGM) {
+      ui.notifications.warn(game.i18n.localize("ESSER.GMOnlyShare"));
+      return null;
+    }
+
+    const img = this.actor?.img;
+    if (!img) {
+      ui.notifications.warn(game.i18n.localize("ESSER.NoPortraitSet"));
+      return null;
+    }
+
+    const title = this.actor?.name ?? game.i18n.localize?.("ESSER.CharacterPortrait") ?? "Portrait";
+    const ImagePopoutCls = this._resolveImagePopoutClass();
+
+    if (typeof ImagePopoutCls === "function") {
+      const popout = new ImagePopoutCls(img, { title });
+      try {
+        if (typeof popout.render === "function") {
+          popout.render(true);
+        }
+        if (typeof popout.shareImage === "function") {
+          await popout.shareImage();
+          ui.notifications.info(game.i18n.localize("ESSER.ImageShared"));
+          return popout;
+        }
+        ui.notifications.warn(game.i18n.localize("ESSER.ImageShareUnavailable"));
+        return popout;
+      } catch (error) {
+        console.error(error);
+        ui.notifications.error(game.i18n.localize("ESSER.ImageShareFailed"));
+        return popout;
+      }
+    }
+
+    ui.notifications.warn(game.i18n.localize("ESSER.ImageShareUnavailable"));
+    window.open(img, "_blank", "noopener");
+    return null;
+  }
+
+  _resolveImagePopoutClass() {
+    return foundry?.applications?.api?.ImagePopout
+      ?? globalThis.ImagePopout
+      ?? foundry?.applications?.apps?.ImagePopout;
+  }
+
+  async _fallbackImagePrompt(editPath, current) {
+    const title = game.i18n.localize?.("ESSER.CharacterPortrait") ?? "Character Portrait";
+    const safeCurrent = foundry.utils.escapeHTML?.(current) ?? current;
+    const content = `
+      <p>${game.i18n.localize?.("ESSER.PortraitPromptHint") ?? "Enter an image URL to use for this character."}</p>
+      <div class="form-group">
+        <label>${game.i18n.localize?.("ESSER.ImagePath") ?? "Image Path"}</label>
+        <input type="text" name="img-path" value="${safeCurrent}" placeholder="https://..." />
+      </div>
+    `.trim();
+
+    const result = await Dialog.prompt({
+      title,
+      content,
+      label: game.i18n.localize?.("ESSER.Confirm") ?? "Confirm",
+      rejectClose: false,
+      callback: (html) => {
+        const root = html instanceof HTMLElement ? html : html[0];
+        return root?.querySelector?.("input[name='img-path']")?.value?.trim();
+      }
+    });
+
+    if (!result) return null;
+
+    const update = {};
+    foundry.utils.setProperty(update, editPath, result);
+    return this.actor.update(update);
+  }
+};
+
 const SKILL_LABELS = {
   athletics: "Athletics", acrobatics: "Acrobatics", endurance: "Endurance", melee: "Melee",
   ranged: "Ranged", unarmed: "Unarmed", stealth: "Stealth", thievery: "Thievery",
@@ -83,7 +257,7 @@ const SKILL_TO_ATTRIBUTE = Object.entries(ATTRIBUTE_DEFS).reduce((acc, [attribut
 
 const NPC_FOCUS_SLOT_COUNT = 4;
 
-class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheet) {
+class EsserActorSheet extends ActorImageControlsMixin(BaseActorSheet) {
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
     classes: ["esser", "sheet", "actor"],
     position: { width: 720, height: 720 },
@@ -101,6 +275,7 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
     const ctx = await super._prepareContext(options);
     ctx.actor = this.actor;
     ctx.system = this.actor.system;
+    ctx.canShowImage = Boolean(game?.user?.isGM);
     const attributeOptions = attributeRankOptions();
     const skillOptions = skillRankOptions();
     ctx.skillGroups = prepareAttributeGroups(this.actor, attributeOptions, skillOptions);
@@ -141,8 +316,12 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
       button.addEventListener("click", (event) => this._onEditActorImage(event));
     });
 
-    htmlElement.querySelectorAll("[data-action='view-image']").forEach((button) => {
-      button.addEventListener("click", (event) => this._onViewActorImage(event));
+    htmlElement.querySelectorAll("[data-action='preview-image'], [data-action='view-image']").forEach((button) => {
+      button.addEventListener("click", (event) => this._onPreviewActorImage(event));
+    });
+
+    htmlElement.querySelectorAll("[data-action='show-image']").forEach((button) => {
+      button.addEventListener("click", (event) => this._onShowActorImage(event));
     });
 
     htmlElement.querySelectorAll("[data-action='strike-inc']").forEach((button) => {
@@ -174,91 +353,9 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
     return this.actor.update(expanded);
   }
 
-  async _onEditActorImage(event) {
-    event.preventDefault();
-    const target = event.currentTarget;
-    const editPath = target?.dataset.edit;
-    if (!editPath) return;
-
-    const current = foundry.utils.getProperty(this.actor, editPath) ?? "";
-
-    const pickerOptions = {
-      type: "image",
-      current,
-      callback: async (path) => {
-        const update = {};
-        foundry.utils.setProperty(update, editPath, path);
-        await this.actor.update(update);
-      }
-    };
-
-    const FilePickerCls = foundry?.applications?.apps?.FilePicker?.implementation
-      ?? foundry?.applications?.FilePicker
-      ?? globalThis.FilePicker;
-
-    if (typeof FilePickerCls?.fromUser === "function") {
-      return FilePickerCls.fromUser(pickerOptions);
-    }
-
-    if (typeof FilePickerCls === "function") {
-      const filePicker = new FilePickerCls(pickerOptions);
-      return filePicker.render(true);
-    }
-
-    return this._fallbackImagePrompt(editPath, current);
-  }
-
-  async _onViewActorImage(event) {
-    event.preventDefault();
-
-    const img = this.actor?.img;
-    if (!img) return;
-
-    const title = this.actor?.name ?? game.i18n.localize?.("ESSER.CharacterPortrait") ?? "Portrait";
-
-    const ImagePopoutCls = foundry?.applications?.api?.ImagePopout
-      ?? globalThis.ImagePopout
-      ?? foundry?.applications?.apps?.ImagePopout;
-
-    if (typeof ImagePopoutCls === "function") {
-      const popout = new ImagePopoutCls(img, { title });
-      return popout.render(true);
-    }
-
-    return window.open(img, "_blank", "noopener");
-  }
-
-  async _fallbackImagePrompt(editPath, current) {
-    const title = game.i18n.localize?.("ESSER.CharacterPortrait") ?? "Character Portrait";
-    const safeCurrent = foundry.utils.escapeHTML?.(current) ?? current;
-    const content = `
-      <p>${game.i18n.localize?.("ESSER.PortraitPromptHint") ?? "Enter an image URL to use for this character."}</p>
-      <div class="form-group">
-        <label>${game.i18n.localize?.("ESSER.ImagePath") ?? "Image Path"}</label>
-        <input type="text" name="img-path" value="${safeCurrent}" placeholder="https://..." />
-      </div>
-    `.trim();
-
-    const result = await Dialog.prompt({
-      title,
-      content,
-      label: game.i18n.localize?.("ESSER.Confirm") ?? "Confirm",
-      rejectClose: false,
-      callback: (html) => {
-        const root = html instanceof HTMLElement ? html : html[0];
-        return root?.querySelector?.("input[name='img-path']")?.value?.trim();
-      }
-    });
-
-    if (!result) return null;
-
-    const update = {};
-    foundry.utils.setProperty(update, editPath, result);
-    return this.actor.update(update);
-  }
 }
 
-class EsserNpcSheet extends HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheet) {
+class EsserNpcSheet extends ActorImageControlsMixin(BaseActorSheet) {
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
     classes: ["esser", "sheet", "actor", "npc"],
     position: { width: 640, height: 640 },
@@ -280,6 +377,7 @@ class EsserNpcSheet extends HandlebarsApplicationMixin(foundry.applications.shee
     ctx.focusSlots = prepareNpcFocusSlots(this.actor, ctx.skillOptions);
     ctx.quickSummary = npcSummaryLine(this.actor);
     ctx.conceptSummary = npcConceptLine(this.actor);
+    ctx.canShowImage = Boolean(game?.user?.isGM);
     return ctx;
   }
 
@@ -339,8 +437,12 @@ class EsserNpcSheet extends HandlebarsApplicationMixin(foundry.applications.shee
       button.addEventListener("click", (event) => this._onEditActorImage(event));
     });
 
-    htmlElement.querySelectorAll("[data-action='view-image']").forEach((button) => {
-      button.addEventListener("click", (event) => this._onViewActorImage(event));
+    htmlElement.querySelectorAll("[data-action='preview-image'], [data-action='view-image']").forEach((button) => {
+      button.addEventListener("click", (event) => this._onPreviewActorImage(event));
+    });
+
+    htmlElement.querySelectorAll("[data-action='show-image']").forEach((button) => {
+      button.addEventListener("click", (event) => this._onShowActorImage(event));
     });
 
     const copyButton = htmlElement.querySelector("[data-action='copy-summary']");
