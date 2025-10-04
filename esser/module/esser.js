@@ -943,7 +943,11 @@ function npcSummaryLine(actor) {
   const strikes = Number(actor?.system?.strikes ?? 0);
   const maxStrikes = Number(actor?.system?.maxStrikes ?? 3);
   const coreTrait = actor?.system?.coreTrait?.trim() || game.i18n.localize("ESSER.NPC.CoreTrait");
-  return `${name} – ${tier}, ${formatModifier(baseBonus)}, Strikes ${strikes}/${maxStrikes}, ${coreTrait}`;
+  const concept = actor?.system?.concept?.trim();
+  const conceptLabel = game?.i18n?.localize?.("ESSER.Concept") ?? "Concept";
+
+  const conceptPart = concept ? `. ${conceptLabel}: ${concept}` : "";
+  return `${name} – ${tier}, ${formatModifier(baseBonus)}, Strikes ${strikes}/${maxStrikes}, ${coreTrait}${conceptPart}`;
 }
 
 function npcDataFromParsed(parsed, actor) {
