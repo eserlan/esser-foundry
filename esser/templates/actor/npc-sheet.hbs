@@ -58,10 +58,6 @@
               <span class="field-label">{{localize "ESSER.NPC.BaseBonus"}}</span>
               <input type="number" name="system.bonus" data-dtype="Number" value="{{system.bonus}}" />
             </label>
-            <label class="npc-field">
-              <span class="field-label">{{localize "ESSER.NPC.CoreTrait"}}</span>
-              <input type="text" name="system.coreTrait" value="{{system.coreTrait}}" placeholder="{{localize 'ESSER.NPC.CoreTraitPlaceholder'}}" />
-            </label>
           </div>
         </div>
         <div class="npc-strikes">
@@ -103,41 +99,8 @@
         </div>
       </div>
       <div class="npc-summary">
-        <div class="npc-summary-text">
-          <p>{{quickSummary}}</p>
-          {{#if conceptSummary}}
-          <p>{{conceptSummary}}</p>
-          {{/if}}
-        </div>
-        <button type="button" class="copy-summary" data-action="copy-summary">{{localize "ESSER.NPC.CopySummary"}}</button>
+        <p>{{quickSummary}}</p>
       </div>
-      <section class="npc-import card">
-        <header class="npc-import-header">
-          <h2>{{localize "ESSER.NPC.StatBlockHeader"}}</h2>
-          <p>{{localize "ESSER.NPC.StatBlockHint"}}</p>
-        </header>
-        <textarea
-          class="npc-import-input"
-          data-role="npc-stat-block"
-          rows="3"
-          placeholder="{{localize 'ESSER.NPC.StatBlockPlaceholder'}}"
-          aria-label="{{localize 'ESSER.NPC.StatBlockHeader'}}"
-        ></textarea>
-        <div class="npc-import-actions">
-          <button type="button" class="npc-import-button" data-action="npc-import-stat-block">
-            {{localize "ESSER.NPC.StatBlockImport"}}
-          </button>
-          <span class="npc-import-hint">{{localize "ESSER.NPC.StatBlockShortcut"}}</span>
-        </div>
-      </section>
-      <label class="npc-concept">
-        <span class="field-label">{{localize "ESSER.Concept"}}</span>
-        <textarea
-          name="system.concept"
-          rows="2"
-          placeholder="{{localize 'ESSER.NPC.ConceptPlaceholder'}}"
-        >{{system.concept}}</textarea>
-      </label>
     </header>
 
     <section class="npc-content">
@@ -195,15 +158,25 @@
           {{/each}}
         </ol>
       </section>
-
-      <aside class="npc-notes card">
-        <h2>{{localize "ESSER.Notes"}}</h2>
+      <section class="npc-import card">
+        <header class="npc-import-header">
+          <h2>{{localize "ESSER.NPC.StatBlockHeader"}}</h2>
+          <p>{{localize "ESSER.NPC.StatBlockHint"}}</p>
+        </header>
         <textarea
-          name="system.notes"
-          rows="10"
-          placeholder="{{localize 'ESSER.NPC.NotesPlaceholder'}}"
-        >{{system.notes}}</textarea>
-      </aside>
+          class="npc-import-input"
+          data-role="npc-stat-block"
+          rows="3"
+          placeholder="{{localize 'ESSER.NPC.StatBlockPlaceholder'}}"
+          aria-label="{{localize 'ESSER.NPC.StatBlockHeader'}}"
+        ></textarea>
+        <div class="npc-import-actions">
+          <button type="button" class="npc-import-button" data-action="npc-import-stat-block">
+            {{localize "ESSER.NPC.StatBlockImport"}}
+          </button>
+          <span class="npc-import-hint">{{localize "ESSER.NPC.StatBlockShortcut"}}</span>
+        </div>
+      </section>
     </section>
   </section>
 </form>
