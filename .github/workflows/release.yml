@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version from tag
+        id: vars
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq zip
+
+      - name: Verify system.json version matches tag
+        run: |
+          SYSVER=$(jq -r .version esser/system.json)
+          if [ "$SYSVER" != "${{ steps.vars.outputs.version }}" ]; then
+            echo "Version mismatch: system.json=$SYSVER tag=${{ steps.vars.outputs.version }}" >&2
+            exit 1
+          fi
+
+      - name: Build release zip
+        run: |
+          ZIP="esser-v${{ steps.vars.outputs.version }}.zip"
+          rm -f "$ZIP"
+          zip -r "$ZIP" esser
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: esser-v${{ steps.vars.outputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
