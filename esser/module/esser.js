@@ -810,7 +810,10 @@ function parseNpcStatBlock(text) {
   const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
   if (lines.length === 0) return null;
 
-  const summary = parseNpcSummaryLine(lines[0]);
+  let summary = parseNpcSummaryLine(lines[0]);
+  if (!summary) {
+    summary = parseAlternateNpcStatBlock(lines);
+  }
   if (!summary) return null;
 
   const conceptLabel = game?.i18n?.localize?.("ESSER.Concept") ?? "Concept";
@@ -857,6 +860,51 @@ function parseNpcSummaryLine(line) {
   };
 }
 
+function parseAlternateNpcStatBlock(lines) {
+  if (!Array.isArray(lines) || lines.length < 2) return null;
+
+  const headerMatch = lines[0].match(/^\s*(.+?)(?:\s*\((.+?)\))?\s*$/);
+  const name = headerMatch?.[1]?.trim();
+  const tier = headerMatch?.[2]?.trim() || undefined;
+  if (!name) return null;
+
+  const detailLine = lines.slice(1).find((line) => /strike/i.test(line));
+  if (!detailLine) return null;
+
+  const bonusMatch = detailLine.match(/[+-]?\d+/);
+  if (!bonusMatch) return null;
+  const bonus = Number.parseInt(bonusMatch[0], 10);
+  if (!Number.isFinite(bonus)) return null;
+
+  const strikeInfo = parseAlternateNpcStrikes(detailLine);
+
+  const traitLabel = game?.i18n?.localize?.("ESSER.NPC.CoreTrait") ?? "Core Trait";
+  const traitRegex = new RegExp(`^(?:${escapeRegExp(traitLabel)}|Trait)\s*:\\s*(.+)$`, "i");
+  const traitMatch = lines.slice(1).map((line) => line.match(traitRegex)).find(Boolean);
+  const coreTrait = traitMatch ? traitMatch[1].trim() : undefined;
+
+  return {
+    name,
+    tier,
+    bonus,
+    strikes: strikeInfo?.strikes ?? 0,
+    maxStrikes: strikeInfo?.maxStrikes,
+    coreTrait
+  };
+}
+
+function parseAlternateNpcStrikes(text) {
+  if (typeof text !== "string") return null;
+
+  const match = text.match(/(\d+)\s*(\+)?\s*Strikes?/i);
+  if (!match) return null;
+
+  const value = Number.parseInt(match[1], 10);
+  if (!Number.isFinite(value)) return null;
+
+  return { strikes: 0, maxStrikes: value };
+}
+
 function parseNpcStrikes(text) {
   if (typeof text !== "string") return null;
   const cleaned = text.replace(/strikes?/gi, "").trim();
@@ -877,7 +925,9 @@ function looksLikeNpcStatBlock(text) {
   if (!normalized) return false;
   const firstLine = normalized.split("\n")[0]?.trim();
   if (!firstLine) return false;
-  return /[–—-]/.test(firstLine) && firstLine.includes(",") && /strikes/i.test(normalized);
+  const summaryFormat = /[–—-]/.test(firstLine) && firstLine.includes(",");
+  const alternateFormat = /\(.+?\)/.test(firstLine);
+  return (summaryFormat && /strikes/i.test(normalized)) || (alternateFormat && /strike/i.test(normalized));
 }
 
 function npcSkillInfo(actor, skill) {
