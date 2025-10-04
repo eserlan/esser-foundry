@@ -8,6 +8,7 @@ Hooks.once("init", async function () {
     ActorsCollection.unregisterSheet("core", CoreActorSheet);
   }
   ActorsCollection.registerSheet("esser", EsserActorSheet, { types: ["character"], makeDefault: true });
+  ActorsCollection.registerSheet("esser", EsserNpcSheet, { types: ["npc"], makeDefault: true });
 });
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -79,6 +80,8 @@ const SKILL_TO_ATTRIBUTE = Object.entries(ATTRIBUTE_DEFS).reduce((acc, [attribut
   }
   return acc;
 }, {});
+
+const NPC_FOCUS_SLOT_COUNT = 4;
 
 class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheet) {
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
@@ -255,6 +258,151 @@ class EsserActorSheet extends HandlebarsApplicationMixin(foundry.applications.sh
   }
 }
 
+class EsserNpcSheet extends HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheet) {
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    classes: ["esser", "sheet", "actor", "npc"],
+    position: { width: 640, height: 640 },
+    window: { resizable: true }
+  });
+
+  static PARTS = {
+    sheet: {
+      template: "systems/esser/templates/actor/npc-sheet.hbs",
+      scrollable: [".sheet-body"]
+    }
+  };
+
+  async _prepareContext(options) {
+    const ctx = await super._prepareContext(options);
+    ctx.actor = this.actor;
+    ctx.system = this.actor.system;
+    ctx.skillOptions = npcSkillOptions();
+    ctx.focusSlots = prepareNpcFocusSlots(this.actor, ctx.skillOptions);
+    ctx.quickSummary = npcSummaryLine(this.actor);
+    ctx.conceptSummary = npcConceptLine(this.actor);
+    return ctx;
+  }
+
+  _attachPartListeners(partId, htmlElement, options) {
+    super._attachPartListeners(partId, htmlElement, options);
+    if (partId !== "sheet") return;
+
+    htmlElement.querySelectorAll("input[name], select[name], textarea[name]").forEach((element) => {
+      element.addEventListener("change", (event) => {
+        const target = event.currentTarget;
+        if (!target?.name) return;
+
+        try {
+          const update = {};
+          const value = coerceInputValue(target);
+          if (value === undefined) return;
+
+          foundry.utils.setProperty(update, target.name, value);
+          this.actor.update(update).catch((error) => console.error(error));
+        } catch (error) {
+          console.error(error);
+        }
+      });
+    });
+
+    htmlElement.querySelectorAll("[data-action='npc-roll']").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const skill = event.currentTarget.dataset.skill;
+        this._onNpcRoll(skill);
+      });
+    });
+
+    htmlElement.querySelectorAll("[data-action='npc-opposed']").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const skill = event.currentTarget.dataset.skill;
+        this._onNpcOpposed(skill);
+      });
+    });
+
+    htmlElement.querySelectorAll("[data-action='strike-inc']").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._modStrikes(1);
+      });
+    });
+
+    htmlElement.querySelectorAll("[data-action='strike-dec']").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._modStrikes(-1);
+      });
+    });
+
+    htmlElement.querySelectorAll("[data-action='edit-image']").forEach((button) => {
+      button.addEventListener("click", (event) => this._onEditActorImage(event));
+    });
+
+    htmlElement.querySelectorAll("[data-action='view-image']").forEach((button) => {
+      button.addEventListener("click", (event) => this._onViewActorImage(event));
+    });
+
+    const copyButton = htmlElement.querySelector("[data-action='copy-summary']");
+    if (copyButton) {
+      copyButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._onCopySummary();
+      });
+    }
+  }
+
+  async _modStrikes(delta) {
+    const maxStrikes = this.actor.system.maxStrikes ?? 3;
+    const s = clamp(this.actor.system.strikes + delta, 0, maxStrikes);
+    await this.actor.update({ "system.strikes": s });
+    if (s >= maxStrikes) {
+      ui.notifications.warn(`${this.actor.name} is OUT (${maxStrikes} Strikes).`);
+    }
+  }
+
+  async _onNpcRoll(skill) {
+    if (!skill) {
+      ui.notifications.warn(game.i18n.localize("ESSER.NPC.NoSkillSelected"));
+      return;
+    }
+    await rollSkill(this.actor, skill, { flavor: game.i18n.localize(`ESSER.Skill.${skill}`) });
+  }
+
+  async _onNpcOpposed(skill) {
+    if (!skill) {
+      ui.notifications.warn(game.i18n.localize("ESSER.NPC.NoSkillSelected"));
+      return;
+    }
+
+    const targets = Array.from(game?.user?.targets ?? []);
+    const defenderToken = targets.find((token) => token?.actor && token.actor !== this.actor) ?? targets[0];
+    const defender = defenderToken?.actor;
+    if (!defender) {
+      ui.notifications.warn(game.i18n.localize("ESSER.NPC.TargetRequired"));
+      return;
+    }
+
+    await opposedCompare(this.actor, defender, skill);
+  }
+
+  async _onCopySummary() {
+    const summary = this._composeSummaryBlock();
+    try {
+      await copyTextToClipboard(summary);
+      ui.notifications.info(game.i18n.localize("ESSER.NPC.SummaryCopied"));
+    } catch (error) {
+      console.error(error);
+      ui.notifications.error(game.i18n.localize("ESSER.NPC.CopyFailed"));
+    }
+  }
+
+  _composeSummaryBlock() {
+    const lines = [npcSummaryLine(this.actor), npcConceptLine(this.actor)].filter(Boolean);
+    return lines.join("\n");
+  }
+}
+
 // ---------- Helpers ----------
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -351,6 +499,12 @@ function formatModifier(value) {
 }
 
 export async function rollSkill(actor, skill, { flavor = "" } = {}) {
+  if (!actor) return null;
+
+  if (actor.type === "npc") {
+    return rollNpcSkill(actor, skill, { flavor });
+  }
+
   const skillBonus = resolveSkillBonus(actor.system.skills?.[skill]);
   const attributeKey = SKILL_TO_ATTRIBUTE[skill];
   const attributeDef = attributeKey ? ATTRIBUTE_DEFS[attributeKey] : null;
@@ -380,6 +534,32 @@ export async function rollSkill(actor, skill, { flavor = "" } = {}) {
   roll.toMessage({
     speaker: ChatMessage.getSpeaker({ actor }),
     flavor: `${actor.name} rolls ${flavor || skill} (bonus ${formatModifier(totalBonus)}${breakdown ? ` • ${breakdown}` : ""}) → <b>${result}</b>`
+  });
+
+  return { roll, total, result };
+}
+
+async function rollNpcSkill(actor, skill, { flavor = "" } = {}) {
+  const { totalBonus, baseBonus, extraBonus, label } = npcSkillInfo(actor, skill);
+  const effectiveLabel = flavor || label || skill;
+
+  const roll = await (new Roll(`1d20 + ${totalBonus}`)).evaluate();
+  const total = roll.total;
+
+  let result = "";
+  if (total >= 20) result = "EPIC SUCCESS";
+  else if (total >= 15) result = "Full success";
+  else if (total >= 10) result = "Success with a cost";
+  else result = "Failure with complication";
+
+  const breakdown = [
+    `${game.i18n.localize("ESSER.NPC.BaseBonus")} ${formatModifier(baseBonus)}`,
+    extraBonus ? `${game.i18n.localize("ESSER.NPC.ExtraBonus")} ${formatModifier(extraBonus)}` : null
+  ].filter(Boolean).join(", ");
+
+  roll.toMessage({
+    speaker: ChatMessage.getSpeaker({ actor }),
+    flavor: `${actor.name} rolls ${effectiveLabel} (bonus ${formatModifier(totalBonus)}${breakdown ? ` • ${breakdown}` : ""}) → <b>${result}</b>`
   });
 
   return { roll, total, result };
@@ -456,4 +636,112 @@ export async function opposedCompare(attacker, defender, skill) {
     content: `<p><b>Opposed Result</b>: ${outcome} <br/>Δ = ${diff} (A:${A.total} vs D:${D.total})</p>`
   });
   return { diff, outcome };
+}
+
+function npcSkillOptions() {
+  const placeholder = game.i18n.localize("ESSER.NPC.SelectSkill");
+  const options = Object.entries(SKILL_LABELS).map(([value, label]) => ({ value, label }));
+  return [{ value: "", label: `— ${placeholder} —` }, ...options];
+}
+
+function prepareNpcFocusSlots(actor, skillOptions) {
+  const baseBonus = Number(actor.system?.bonus ?? 0);
+  const slots = ensureNpcFocusSlots(actor.system?.focus?.slots);
+  const placeholder = skillOptions[0]?.label ?? "—";
+
+  return slots.map((slot, index) => {
+    const skill = slot?.skill ?? "";
+    const extra = Number(slot?.extra ?? 0);
+    const label = skill
+      ? localizeOrFallback(`ESSER.Skill.${skill}`, SKILL_LABELS[skill] ?? skill)
+      : placeholder;
+    const options = skillOptions.map((option) => ({
+      ...option,
+      selected: option.value === skill
+    }));
+
+    return {
+      index,
+      skill,
+      extra,
+      total: baseBonus + extra,
+      totalDisplay: formatModifier(baseBonus + extra),
+      label,
+      hasSkill: Boolean(skill),
+      options
+    };
+  });
+}
+
+function ensureNpcFocusSlots(slots) {
+  const prepared = Array.isArray(slots) ? slots.map((slot) => ({
+    skill: slot?.skill ?? "",
+    extra: Number(slot?.extra ?? 0)
+  })) : [];
+
+  while (prepared.length < NPC_FOCUS_SLOT_COUNT) {
+    prepared.push({ skill: "", extra: 0 });
+  }
+
+  return prepared.slice(0, NPC_FOCUS_SLOT_COUNT);
+}
+
+function npcSummaryLine(actor) {
+  const name = actor?.name?.trim() || game.i18n.localize("ESSER.CharacterName");
+  const tier = actor?.system?.tier?.trim() || game.i18n.localize("ESSER.NPC.Tier");
+  const baseBonus = Number(actor?.system?.bonus ?? 0);
+  const strikes = Number(actor?.system?.strikes ?? 0);
+  const maxStrikes = Number(actor?.system?.maxStrikes ?? 3);
+  const coreTrait = actor?.system?.coreTrait?.trim() || game.i18n.localize("ESSER.NPC.CoreTrait");
+  return `${name} – ${tier}, ${formatModifier(baseBonus)}, Strikes ${strikes}/${maxStrikes}, ${coreTrait}`;
+}
+
+function npcConceptLine(actor) {
+  const concept = actor?.system?.concept?.trim();
+  if (!concept) return "";
+  return `${game.i18n.localize("ESSER.Concept")}: ${concept}`;
+}
+
+function npcSkillInfo(actor, skill) {
+  const baseBonus = Number(actor?.system?.bonus ?? 0);
+  const slots = ensureNpcFocusSlots(actor?.system?.focus?.slots);
+  const match = slots.find((slot) => slot?.skill === skill);
+  const extraBonus = match ? Number(match.extra ?? 0) : 0;
+  const label = skill
+    ? localizeOrFallback(`ESSER.Skill.${skill}`, SKILL_LABELS[skill] ?? skill)
+    : game.i18n.localize("ESSER.NPC.SelectSkill");
+  return {
+    baseBonus,
+    extraBonus,
+    totalBonus: baseBonus + extraBonus,
+    label
+  };
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator?.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+
+  if (typeof document === "undefined") {
+    throw new Error("Clipboard API unavailable");
+  }
+
+  return new Promise((resolve, reject) => {
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      if (!successful) reject(new Error("Copy command failed"));
+      else resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
 }

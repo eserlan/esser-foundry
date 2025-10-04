@@ -1,0 +1,175 @@
+<form class="esser-sheet npc-sheet {{cssClass}}" autocomplete="off">
+  <section class="sheet-body">
+    <header class="npc-header card">
+      <div class="npc-header-grid">
+        <div class="npc-portrait" aria-hidden="{{#if actor.img}}false{{else}}true{{/if}}">
+          <button
+            type="button"
+            class="portrait-button"
+            data-action="edit-image"
+            data-edit="img"
+            aria-label="{{localize 'ESSER.CharacterPortrait'}}"
+            title="{{localize 'ESSER.CharacterPortrait'}}"
+          >
+            <img src="{{actor.img}}" alt="{{actor.name}}" />
+          </button>
+          <button
+            type="button"
+            class="portrait-viewer"
+            data-action="view-image"
+            aria-label="{{localize 'ESSER.ViewPortrait'}}"
+            title="{{localize 'ESSER.ViewPortrait'}}"
+          >
+            <span aria-hidden="true">🖼️</span>
+          </button>
+        </div>
+        <div class="npc-identity">
+          <label class="field-label" for="esser-npc-name-{{actor._id}}">{{localize "ESSER.CharacterName"}}</label>
+          <input
+            id="esser-npc-name-{{actor._id}}"
+            class="npc-name"
+            name="name"
+            type="text"
+            value="{{actor.name}}"
+            placeholder="{{localize 'ESSER.CharacterName'}}"
+          />
+
+          <div class="npc-fields">
+            <label class="npc-field">
+              <span class="field-label">{{localize "ESSER.NPC.Tier"}}</span>
+              <input type="text" name="system.tier" value="{{system.tier}}" placeholder="{{localize 'ESSER.NPC.TierPlaceholder'}}" />
+            </label>
+            <label class="npc-field">
+              <span class="field-label">{{localize "ESSER.NPC.BaseBonus"}}</span>
+              <input type="number" name="system.bonus" data-dtype="Number" value="{{system.bonus}}" />
+            </label>
+            <label class="npc-field">
+              <span class="field-label">{{localize "ESSER.NPC.CoreTrait"}}</span>
+              <input type="text" name="system.coreTrait" value="{{system.coreTrait}}" placeholder="{{localize 'ESSER.NPC.CoreTraitPlaceholder'}}" />
+            </label>
+          </div>
+        </div>
+        <div class="npc-strikes">
+          <span class="panel-label">{{localize "ESSER.Strikes"}}</span>
+          <div class="strike-controls">
+            <button type="button" class="strike-button" data-action="strike-dec" aria-label="{{localize 'ESSER.ReduceStrike'}}">−</button>
+            <input
+              class="strike-value"
+              type="number"
+              name="system.strikes"
+              data-dtype="Number"
+              value="{{system.strikes}}"
+              min="0"
+              max="{{system.maxStrikes}}"
+            />
+            <button type="button" class="strike-button" data-action="strike-inc" aria-label="{{localize 'ESSER.IncreaseStrike'}}">+</button>
+          </div>
+          <meter
+            class="strike-meter"
+            min="0"
+            max="{{system.maxStrikes}}"
+            value="{{system.strikes}}"
+            title="{{system.strikes}} / {{system.maxStrikes}}"
+          ></meter>
+          <div class="strike-meta">
+            <label class="max-strikes" for="esser-npc-max-strikes-{{actor._id}}">
+              <span>{{localize "ESSER.MaxStrikes"}}</span>
+              <input
+                id="esser-npc-max-strikes-{{actor._id}}"
+                type="number"
+                name="system.maxStrikes"
+                data-dtype="Number"
+                value="{{system.maxStrikes}}"
+                min="1"
+              />
+            </label>
+            <span class="strike-count">{{system.strikes}} / {{system.maxStrikes}}</span>
+          </div>
+        </div>
+      </div>
+      <div class="npc-summary">
+        <div class="npc-summary-text">
+          <p>{{quickSummary}}</p>
+          {{#if conceptSummary}}
+          <p>{{conceptSummary}}</p>
+          {{/if}}
+        </div>
+        <button type="button" class="copy-summary" data-action="copy-summary">{{localize "ESSER.NPC.CopySummary"}}</button>
+      </div>
+      <label class="npc-concept">
+        <span class="field-label">{{localize "ESSER.Concept"}}</span>
+        <textarea
+          name="system.concept"
+          rows="2"
+          placeholder="{{localize 'ESSER.NPC.ConceptPlaceholder'}}"
+        >{{system.concept}}</textarea>
+      </label>
+    </header>
+
+    <section class="npc-content">
+      <section class="npc-focus card">
+        <header class="section-header">
+          <h2>{{localize "ESSER.NPC.SignatureSkills"}}</h2>
+          <p>{{localize "ESSER.NPC.SignatureHint"}}</p>
+        </header>
+        <ol class="npc-focus-list">
+          {{#each focusSlots}}
+          <li class="npc-focus-row">
+            <div class="focus-skill">
+              <label class="field-label" for="esser-npc-skill-{{../actor._id}}-{{this.index}}">{{localize "ESSER.NPC.Skill"}}</label>
+              <select id="esser-npc-skill-{{../actor._id}}-{{this.index}}" name="system.focus.slots.{{this.index}}.skill">
+                {{#each this.options}}
+                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                {{/each}}
+              </select>
+            </div>
+            <div class="focus-extra">
+              <label class="field-label" for="esser-npc-extra-{{../actor._id}}-{{this.index}}">{{localize "ESSER.NPC.ExtraBonus"}}</label>
+              <input
+                id="esser-npc-extra-{{../actor._id}}-{{this.index}}"
+                type="number"
+                name="system.focus.slots.{{this.index}}.extra"
+                data-dtype="Number"
+                value="{{this.extra}}"
+              />
+            </div>
+            <div class="focus-total">
+              <span class="field-label">{{localize "ESSER.NPC.TotalBonus"}}</span>
+              <span class="total-display">{{this.totalDisplay}}</span>
+            </div>
+            <div class="focus-actions">
+              <button
+                type="button"
+                class="roll-button"
+                data-action="npc-roll"
+                data-skill="{{this.skill}}"
+                {{#unless this.hasSkill}}disabled{{/unless}}
+                aria-label="{{localize 'ESSER.RollSkill' label=this.label}}"
+                title="{{localize 'ESSER.NPC.Roll'}} {{this.label}}"
+              >🎲</button>
+              <button
+                type="button"
+                class="oppose-button"
+                data-action="npc-opposed"
+                data-skill="{{this.skill}}"
+                {{#unless this.hasSkill}}disabled{{/unless}}
+                aria-label="{{localize 'ESSER.NPC.Opposed'}} {{this.label}}"
+                title="{{localize 'ESSER.NPC.Opposed'}} {{this.label}}"
+              >⚔️</button>
+            </div>
+          </li>
+          {{/each}}
+        </ol>
+      </section>
+
+      <aside class="npc-notes card">
+        <h2>{{localize "ESSER.Notes"}}</h2>
+        <textarea
+          name="system.notes"
+          rows="10"
+          placeholder="{{localize 'ESSER.NPC.NotesPlaceholder'}}"
+        >{{system.notes}}</textarea>
+      </aside>
+    </section>
+  </section>
+</form>

@@ -198,6 +198,231 @@
   box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.18), 0 2px 6px rgba(15, 23, 42, 0.08);
 }
 
+/* NPC Sheet -------------------------------------------------- */
+.esser.sheet.actor.npc .npc-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(191, 219, 254, 0.45));
+}
+
+.esser.sheet.actor.npc .npc-header-grid {
+  display: grid;
+  grid-template-columns: minmax(110px, 140px) 1fr minmax(200px, 220px);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.esser.sheet.actor.npc .npc-portrait {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.05);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.esser.sheet.actor.npc .npc-portrait .portrait-button img {
+  aspect-ratio: 1 / 1;
+}
+
+.esser.sheet.actor.npc .npc-identity {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.esser.sheet.actor.npc .npc-name {
+  font-size: 1.45rem;
+  font-weight: 600;
+  border: none;
+  border-bottom: 2px solid rgba(15, 23, 42, 0.15);
+  padding: 4px 2px;
+  background: transparent;
+}
+
+.esser.sheet.actor.npc .npc-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.esser.sheet.actor.npc .npc-field input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.15);
+  padding: 6px 4px;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 6px 6px 0 0;
+}
+
+.esser.sheet.actor.npc .npc-strikes {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 8px;
+  align-content: start;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.18), 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.esser.sheet.actor.npc .npc-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.05);
+  border-radius: 12px;
+}
+
+.esser.sheet.actor.npc .npc-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.esser.sheet.actor.npc .copy-summary {
+  align-self: stretch;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--esser-accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.esser.sheet.actor.npc .copy-summary:hover,
+.esser.sheet.actor.npc .copy-summary:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(249, 115, 22, 0.25);
+}
+
+.esser.sheet.actor.npc .npc-concept textarea {
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  resize: vertical;
+}
+
+.esser.sheet.actor.npc .npc-content {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.esser.sheet.actor.npc .npc-focus .section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.esser.sheet.actor.npc .npc-focus-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.esser.sheet.actor.npc .npc-focus-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.9fr) minmax(0, 0.6fr) minmax(0, 0.6fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.esser.sheet.actor.npc .npc-focus-row select,
+.esser.sheet.actor.npc .npc-focus-row input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.esser.sheet.actor.npc .focus-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.esser.sheet.actor.npc .focus-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.esser.sheet.actor.npc .focus-actions button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.14);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.esser.sheet.actor.npc .focus-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.esser.sheet.actor.npc .focus-actions button:not(:disabled):hover,
+.esser.sheet.actor.npc .focus-actions button:not(:disabled):focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.22);
+}
+
+.esser.sheet.actor.npc .npc-notes textarea {
+  width: 100%;
+  min-height: 220px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+@media (max-width: 900px) {
+  .esser.sheet.actor.npc .npc-header-grid {
+    grid-template-columns: minmax(100px, 120px) 1fr;
+    grid-template-areas:
+      "portrait identity"
+      "strikes strikes";
+  }
+
+  .esser.sheet.actor.npc .npc-strikes {
+    grid-column: span 2;
+  }
+
+  .esser.sheet.actor.npc .npc-content {
+    grid-template-columns: 1fr;
+  }
+
+  .esser.sheet.actor.npc .npc-focus-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .panel-label {
   font-weight: 700;
   font-size: 1.1rem;
