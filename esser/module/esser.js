@@ -14,6 +14,11 @@ Hooks.once("init", async function () {
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
 const BaseActorSheet = HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheet);
+const BaseHandlebarsApplication = HandlebarsApplicationMixin(
+  foundry.applications.api.ApplicationV2
+    ?? foundry.applications.Application
+    ?? globalThis.Application
+);
 
 const ActorImageControlsMixin = (Base) => class extends Base {
   async _onEditActorImage(event) {
@@ -444,44 +449,6 @@ class EsserNpcSheet extends ActorImageControlsMixin(BaseActorSheet) {
       button.addEventListener("click", (event) => this._onShowActorImage(event));
     });
 
-    const statBlockInput = htmlElement.querySelector("[data-role='npc-stat-block']");
-    if (statBlockInput) {
-      const importStatBlock = async () => {
-        const raw = statBlockInput.value?.trim();
-        if (!raw) {
-          ui.notifications.warn(game.i18n.localize("ESSER.NPC.StatBlockEmpty"));
-          return;
-        }
-
-        const imported = await this._importNpcStatBlock(raw);
-        if (imported) {
-          statBlockInput.value = "";
-        }
-      };
-
-      const importButton = htmlElement.querySelector("[data-action='npc-import-stat-block']");
-      if (importButton) {
-        importButton.addEventListener("click", (event) => {
-          event.preventDefault();
-          importStatBlock();
-        });
-      }
-
-      statBlockInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-          event.preventDefault();
-          importStatBlock();
-        }
-      });
-
-      statBlockInput.addEventListener("paste", (event) => {
-        const text = event.clipboardData?.getData("text/plain") ?? "";
-        if (!text) return;
-        event.preventDefault();
-        statBlockInput.value = text.trim();
-        importStatBlock();
-      });
-    }
   }
 
   async _modStrikes(delta) {
@@ -528,7 +495,8 @@ class EsserNpcSheet extends ActorImageControlsMixin(BaseActorSheet) {
     }
 
     try {
-      await this._applyParsedNpcStatBlock(parsed);
+      const update = npcDataFromParsed(parsed, this.actor);
+      await this.actor.update(update);
       ui.notifications.info(game.i18n.localize("ESSER.NPC.PasteImported"));
       return true;
     } catch (error) {
@@ -537,47 +505,153 @@ class EsserNpcSheet extends ActorImageControlsMixin(BaseActorSheet) {
       return false;
     }
   }
+}
 
-  async _applyParsedNpcStatBlock(parsed) {
-    const update = {};
+class EsserNpcImportApplication extends BaseHandlebarsApplication {
+  static #instance;
 
-    if (parsed.name) {
-      update.name = parsed.name;
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    classes: ["esser", "npc-importer"],
+    position: { width: 520 },
+    window: { resizable: false }
+  });
+
+  static PARTS = {
+    form: {
+      template: "systems/esser/templates/apps/npc-import.hbs"
+    }
+  };
+
+  static show(options = {}) {
+    let instance = this.#instance;
+    if (!instance) {
+      instance = new this();
+      this.#instance = instance;
+    }
+    instance.render(true, options);
+    return instance;
+  }
+
+  async close(options) {
+    await super.close(options);
+    if (EsserNpcImportApplication.#instance === this) {
+      EsserNpcImportApplication.#instance = null;
+    }
+  }
+
+  async _prepareContext(options) {
+    const ctx = await super._prepareContext(options);
+    this.options.window.title = game.i18n.localize("ESSER.NPC.ImportDialogTitle");
+    return ctx;
+  }
+
+  _attachPartListeners(partId, htmlElement, options) {
+    super._attachPartListeners(partId, htmlElement, options);
+    if (partId !== "form") return;
+
+    const statBlockInput = htmlElement.querySelector("[data-role='npc-stat-block']");
+    if (!statBlockInput) return;
+
+    const importButton = htmlElement.querySelector("[data-action='npc-import-stat-block']");
+
+    const importStatBlock = async () => {
+      const raw = statBlockInput.value?.trim();
+      if (!raw) {
+        ui.notifications.warn(game.i18n.localize("ESSER.NPC.StatBlockEmpty"));
+        return;
+      }
+
+      const created = await this._createNpcFromStatBlock(raw);
+      if (created) {
+        statBlockInput.value = "";
+        statBlockInput.focus();
+      }
+    };
+
+    importButton?.addEventListener("click", (event) => {
+      event.preventDefault();
+      importStatBlock();
+    });
+
+    statBlockInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        importStatBlock();
+      }
+    });
+
+    statBlockInput.addEventListener("paste", (event) => {
+      const text = event.clipboardData?.getData("text/plain") ?? "";
+      if (!text) return;
+      event.preventDefault();
+      statBlockInput.value = text.trim();
+      importStatBlock();
+    });
+
+    setTimeout(() => statBlockInput.focus(), 50);
+  }
+
+  async _createNpcFromStatBlock(text) {
+    const parsed = parseNpcStatBlock(text);
+    if (!parsed) {
+      if (looksLikeNpcStatBlock(text)) {
+        ui.notifications.warn(game.i18n.localize("ESSER.NPC.PasteUnrecognized"));
+      }
+      return null;
     }
 
-    if (parsed.tier) {
-      foundry.utils.setProperty(update, "system.tier", parsed.tier);
+    const data = npcDataFromParsed(parsed);
+    data.type = "npc";
+    data.name = parsed.name?.trim() || game.i18n.localize("ESSER.NPC.ImportedName");
+
+    const ActorCls = game?.actors?.documentClass ?? CONFIG?.Actor?.documentClass ?? globalThis.Actor;
+    if (typeof ActorCls?.create !== "function") {
+      ui.notifications.error(game.i18n.localize("ESSER.NPC.ImportFailed"));
+      return null;
     }
 
-    if (Number.isFinite(parsed.bonus)) {
-      foundry.utils.setProperty(update, "system.bonus", parsed.bonus);
+    try {
+      const created = await ActorCls.create(data, { renderSheet: true });
+      if (created) {
+        ui.notifications.info(game.i18n.localize("ESSER.NPC.ImportCreated"));
+      }
+      return created;
+    } catch (error) {
+      console.error(error);
+      ui.notifications.error(game.i18n.localize("ESSER.NPC.ImportFailed"));
+      return null;
     }
-
-    const currentMaxStrikes = this.actor.system.maxStrikes ?? 3;
-    const maxStrikes = Number.isFinite(parsed.maxStrikes)
-      ? Math.max(1, parsed.maxStrikes)
-      : currentMaxStrikes;
-    const strikes = Number.isFinite(parsed.strikes)
-      ? Math.max(0, parsed.strikes)
-      : this.actor.system.strikes ?? 0;
-
-    if (Number.isFinite(parsed.maxStrikes)) {
-      foundry.utils.setProperty(update, "system.maxStrikes", maxStrikes);
-    }
-
-    foundry.utils.setProperty(update, "system.strikes", clamp(strikes, 0, maxStrikes));
-
-    if (parsed.coreTrait) {
-      foundry.utils.setProperty(update, "system.coreTrait", parsed.coreTrait);
-    }
-
-    if (Object.prototype.hasOwnProperty.call(parsed, "concept") && parsed.concept !== undefined) {
-      foundry.utils.setProperty(update, "system.concept", parsed.concept ?? "");
-    }
-
-    return this.actor.update(update);
   }
 }
+
+Hooks.once("ready", () => {
+  game.esser ??= {};
+  game.esser.showNpcImport = () => EsserNpcImportApplication.show();
+});
+
+Hooks.on("renderActorDirectory", (app, html) => {
+  if (!game?.user?.isGM) return;
+
+  const root = html instanceof HTMLElement ? html : html?.[0];
+  if (!(root instanceof HTMLElement)) return;
+
+  const header = root.querySelector(".header-actions");
+  if (!header) return;
+
+  if (header.querySelector("[data-action='esser-open-npc-import']")) return;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.dataset.action = "esser-open-npc-import";
+  button.innerHTML = `<i class="fas fa-file-import"></i> ${game.i18n.localize("ESSER.NPC.ImportOpen")}`;
+  button.title = game.i18n.localize("ESSER.NPC.ImportDialogTitle");
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    EsserNpcImportApplication.show();
+  });
+
+  header.appendChild(button);
+});
 
 // ---------- Helpers ----------
 function clamp(value, min, max) {
@@ -870,6 +944,52 @@ function npcSummaryLine(actor) {
   const maxStrikes = Number(actor?.system?.maxStrikes ?? 3);
   const coreTrait = actor?.system?.coreTrait?.trim() || game.i18n.localize("ESSER.NPC.CoreTrait");
   return `${name} – ${tier}, ${formatModifier(baseBonus)}, Strikes ${strikes}/${maxStrikes}, ${coreTrait}`;
+}
+
+function npcDataFromParsed(parsed, actor) {
+  const update = {};
+  if (!parsed || typeof parsed !== "object") return update;
+
+  if (parsed.name) {
+    update.name = parsed.name;
+  }
+
+  const system = {};
+
+  if (parsed.tier) {
+    system.tier = parsed.tier;
+  }
+
+  if (Number.isFinite(parsed.bonus)) {
+    system.bonus = parsed.bonus;
+  }
+
+  const currentMax = Number(actor?.system?.maxStrikes ?? 3);
+  const hasParsedMax = Number.isFinite(parsed.maxStrikes);
+  const maxStrikes = hasParsedMax ? Math.max(1, parsed.maxStrikes) : currentMax;
+
+  if (hasParsedMax || !actor) {
+    system.maxStrikes = maxStrikes;
+  }
+
+  const hasParsedStrikes = Number.isFinite(parsed.strikes);
+  const strikesSource = hasParsedStrikes ? Math.max(0, parsed.strikes) : Number(actor?.system?.strikes ?? 0);
+  const clampMax = hasParsedMax ? maxStrikes : Number(actor?.system?.maxStrikes ?? maxStrikes);
+  system.strikes = clamp(strikesSource, 0, clampMax);
+
+  if (parsed.coreTrait) {
+    system.coreTrait = parsed.coreTrait;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(parsed, "concept") && parsed.concept !== undefined) {
+    system.concept = parsed.concept ?? "";
+  }
+
+  if (Object.keys(system).length > 0) {
+    update.system = system;
+  }
+
+  return update;
 }
 
 function parseNpcStatBlock(text) {
