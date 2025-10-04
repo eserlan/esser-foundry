@@ -376,7 +376,6 @@ class EsserNpcSheet extends ActorImageControlsMixin(BaseActorSheet) {
     ctx.skillOptions = npcSkillOptions();
     ctx.focusSlots = prepareNpcFocusSlots(this.actor, ctx.skillOptions);
     ctx.quickSummary = npcSummaryLine(this.actor);
-    ctx.conceptSummary = npcConceptLine(this.actor);
     ctx.canShowImage = Boolean(game?.user?.isGM);
     return ctx;
   }
@@ -444,14 +443,6 @@ class EsserNpcSheet extends ActorImageControlsMixin(BaseActorSheet) {
     htmlElement.querySelectorAll("[data-action='show-image']").forEach((button) => {
       button.addEventListener("click", (event) => this._onShowActorImage(event));
     });
-
-    const copyButton = htmlElement.querySelector("[data-action='copy-summary']");
-    if (copyButton) {
-      copyButton.addEventListener("click", (event) => {
-        event.preventDefault();
-        this._onCopySummary();
-      });
-    }
 
     const statBlockInput = htmlElement.querySelector("[data-role='npc-stat-block']");
     if (statBlockInput) {
@@ -525,22 +516,6 @@ class EsserNpcSheet extends ActorImageControlsMixin(BaseActorSheet) {
     }
 
     await opposedCompare(this.actor, defender, skill);
-  }
-
-  async _onCopySummary() {
-    const summary = this._composeSummaryBlock();
-    try {
-      await copyTextToClipboard(summary);
-      ui.notifications.info(game.i18n.localize("ESSER.NPC.SummaryCopied"));
-    } catch (error) {
-      console.error(error);
-      ui.notifications.error(game.i18n.localize("ESSER.NPC.CopyFailed"));
-    }
-  }
-
-  _composeSummaryBlock() {
-    const lines = [npcSummaryLine(this.actor), npcConceptLine(this.actor)].filter(Boolean);
-    return lines.join("\n");
   }
 
   async _importNpcStatBlock(text) {
@@ -897,12 +872,6 @@ function npcSummaryLine(actor) {
   return `${name} – ${tier}, ${formatModifier(baseBonus)}, Strikes ${strikes}/${maxStrikes}, ${coreTrait}`;
 }
 
-function npcConceptLine(actor) {
-  const concept = actor?.system?.concept?.trim();
-  if (!concept) return "";
-  return `${game.i18n.localize("ESSER.Concept")}: ${concept}`;
-}
-
 function parseNpcStatBlock(text) {
   if (typeof text !== "string") return null;
 
@@ -1004,7 +973,12 @@ function parseAlternateNpcStrikes(text) {
   const value = Number.parseInt(match[1], 10);
   if (!Number.isFinite(value)) return null;
 
-  return { strikes: 0, maxStrikes: value };
+  const hasPlus = Boolean(match[2]);
+  if (hasPlus) {
+    return { strikes: 0, maxStrikes: value };
+  }
+
+  return { strikes: value };
 }
 
 function parseNpcStrikes(text) {
@@ -1051,32 +1025,4 @@ function npcSkillInfo(actor, skill) {
 function escapeRegExp(string) {
   if (typeof string !== "string") return "";
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-async function copyTextToClipboard(text) {
-  if (navigator?.clipboard?.writeText) {
-    return navigator.clipboard.writeText(text);
-  }
-
-  if (typeof document === "undefined") {
-    throw new Error("Clipboard API unavailable");
-  }
-
-  return new Promise((resolve, reject) => {
-    try {
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      const successful = document.execCommand("copy");
-      document.body.removeChild(textarea);
-      if (!successful) reject(new Error("Copy command failed"));
-      else resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
 }

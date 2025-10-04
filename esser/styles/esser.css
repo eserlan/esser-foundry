@@ -286,28 +286,22 @@
 }
 
 .esser.sheet.actor.npc .npc-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
+  margin-top: 12px;
+  padding: 10px 14px;
   background: rgba(15, 23, 42, 0.05);
   border-radius: 12px;
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
 
-.esser.sheet.actor.npc .npc-summary-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.95rem;
-  line-height: 1.45;
+.esser.sheet.actor.npc .npc-summary p {
+  margin: 0;
 }
 
 .esser.sheet.actor.npc .npc-import {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 12px;
   background: rgba(15, 23, 42, 0.04);
   border-radius: 12px;
 }
@@ -369,36 +363,9 @@
   color: rgba(15, 23, 42, 0.6);
 }
 
-.esser.sheet.actor.npc .copy-summary {
-  align-self: stretch;
-  padding: 8px 14px;
-  border: none;
-  border-radius: 10px;
-  background: var(--esser-accent);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease;
-}
-
-.esser.sheet.actor.npc .copy-summary:hover,
-.esser.sheet.actor.npc .copy-summary:focus-visible {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(249, 115, 22, 0.25);
-}
-
-.esser.sheet.actor.npc .npc-concept textarea {
-  width: 100%;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 10px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  resize: vertical;
-}
-
 .esser.sheet.actor.npc .npc-content {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 14px;
 }
 
@@ -472,15 +439,6 @@
 .esser.sheet.actor.npc .focus-actions button:not(:disabled):focus-visible {
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.22);
-}
-
-.esser.sheet.actor.npc .npc-notes textarea {
-  width: 100%;
-  min-height: 220px;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.95);
 }
 
 @media (max-width: 900px) {
