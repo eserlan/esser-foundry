@@ -74,6 +74,11 @@
     "StatBlockPlaceholder": "Goblin Sneak – Tier I, +2, Strikes 0/3, Pack tactics",
     "StatBlockImport": "Import stat block",
     "StatBlockShortcut": "Press Ctrl+Enter (or ⌘+Enter) after pasting to import.",
-    "StatBlockEmpty": "Paste a stat block summary before importing."
+    "StatBlockEmpty": "Paste a stat block summary before importing.",
+    "ImportDialogTitle": "Import NPC from Stat Block",
+    "ImportOpen": "Import NPC",
+    "ImportCreated": "Created a new NPC from the stat block.",
+    "ImportFailed": "Could not create an NPC from the provided stat block.",
+    "ImportedName": "Imported NPC"
   }
 }
