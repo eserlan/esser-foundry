@@ -350,6 +350,8 @@ class EsserNpcSheet extends HandlebarsApplicationMixin(foundry.applications.shee
         this._onCopySummary();
       });
     }
+
+    htmlElement.addEventListener("paste", (event) => this._onPasteStatBlock(event));
   }
 
   async _modStrikes(delta) {
@@ -400,6 +402,68 @@ class EsserNpcSheet extends HandlebarsApplicationMixin(foundry.applications.shee
   _composeSummaryBlock() {
     const lines = [npcSummaryLine(this.actor), npcConceptLine(this.actor)].filter(Boolean);
     return lines.join("\n");
+  }
+
+  async _onPasteStatBlock(event) {
+    const clipboard = event?.clipboardData ?? (typeof window !== "undefined" ? window.clipboardData : undefined);
+    if (!clipboard?.getData) return;
+
+    const text = clipboard.getData("text/plain") || clipboard.getData("text");
+    if (!text) return;
+
+    const parsed = parseNpcStatBlock(text);
+    if (!parsed) {
+      if (looksLikeNpcStatBlock(text)) {
+        ui.notifications.warn(game.i18n.localize("ESSER.NPC.PasteUnrecognized"));
+      }
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const update = {};
+    if (parsed.name) {
+      update.name = parsed.name;
+    }
+
+    if (parsed.tier) {
+      foundry.utils.setProperty(update, "system.tier", parsed.tier);
+    }
+
+    if (Number.isFinite(parsed.bonus)) {
+      foundry.utils.setProperty(update, "system.bonus", parsed.bonus);
+    }
+
+    const currentMaxStrikes = this.actor.system.maxStrikes ?? 3;
+    const maxStrikes = Number.isFinite(parsed.maxStrikes)
+      ? Math.max(1, parsed.maxStrikes)
+      : currentMaxStrikes;
+    const strikes = Number.isFinite(parsed.strikes)
+      ? Math.max(0, parsed.strikes)
+      : this.actor.system.strikes ?? 0;
+
+    if (Number.isFinite(parsed.maxStrikes)) {
+      foundry.utils.setProperty(update, "system.maxStrikes", maxStrikes);
+    }
+
+    foundry.utils.setProperty(update, "system.strikes", clamp(strikes, 0, maxStrikes));
+
+    if (parsed.coreTrait) {
+      foundry.utils.setProperty(update, "system.coreTrait", parsed.coreTrait);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(parsed, "concept") && parsed.concept !== undefined) {
+      foundry.utils.setProperty(update, "system.concept", parsed.concept ?? "");
+    }
+
+    try {
+      await this.actor.update(update);
+      ui.notifications.info(game.i18n.localize("ESSER.NPC.PasteImported"));
+    } catch (error) {
+      console.error(error);
+      ui.notifications.error(game.i18n.localize("ESSER.NPC.PasteUnrecognized"));
+    }
   }
 }
 
@@ -702,6 +766,85 @@ function npcConceptLine(actor) {
   return `${game.i18n.localize("ESSER.Concept")}: ${concept}`;
 }
 
+function parseNpcStatBlock(text) {
+  if (typeof text !== "string") return null;
+
+  const normalized = text.replace(/\r\n?/g, "\n").trim();
+  if (!normalized) return null;
+
+  const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
+  if (lines.length === 0) return null;
+
+  const summary = parseNpcSummaryLine(lines[0]);
+  if (!summary) return null;
+
+  const conceptLabel = game?.i18n?.localize?.("ESSER.Concept") ?? "Concept";
+  const conceptRegex = new RegExp(`^(?:${escapeRegExp(conceptLabel)}|Concept)\s*:\\s*(.+)$`, "i");
+  const conceptMatch = lines.slice(1).map((line) => line.match(conceptRegex)).find(Boolean);
+  if (conceptMatch) {
+    summary.concept = conceptMatch[1].trim();
+  }
+
+  return summary;
+}
+
+function parseNpcSummaryLine(line) {
+  if (typeof line !== "string") return null;
+  const dashMatch = line.match(/^\s*(.+?)\s+[–—-]\s+(.+)$/);
+  if (!dashMatch) return null;
+
+  const name = dashMatch[1]?.trim();
+  const remainder = dashMatch[2]?.trim();
+  if (!name || !remainder) return null;
+
+  const segments = remainder.split(",").map((part) => part.trim()).filter(Boolean);
+  if (segments.length < 3) return null;
+
+  const tier = segments.shift();
+  const bonusPart = segments.shift();
+  const strikesPart = segments.shift();
+  const coreTrait = segments.join(", ").trim();
+
+  const bonusMatch = bonusPart.match(/[+-]?\d+/);
+  if (!bonusMatch) return null;
+  const bonus = Number.parseInt(bonusMatch[0], 10);
+
+  const strikeInfo = parseNpcStrikes(strikesPart);
+  if (!strikeInfo) return null;
+
+  return {
+    name,
+    tier,
+    bonus,
+    strikes: strikeInfo.strikes,
+    maxStrikes: strikeInfo.maxStrikes,
+    coreTrait
+  };
+}
+
+function parseNpcStrikes(text) {
+  if (typeof text !== "string") return null;
+  const cleaned = text.replace(/strikes?/gi, "").trim();
+  const match = cleaned.match(/(\d+)(?:\s*\/\s*(\d+))?/);
+  if (!match) return null;
+
+  const strikes = Number.parseInt(match[1], 10);
+  const maxStrikes = match[2] ? Number.parseInt(match[2], 10) : undefined;
+
+  if (!Number.isFinite(strikes)) return null;
+
+  return { strikes, maxStrikes };
+}
+
+function looksLikeNpcStatBlock(text) {
+  if (typeof text !== "string") return false;
+  const normalized = text.replace(/\r\n?/g, "\n").trim();
+  if (!normalized) return false;
+  const firstLine = normalized.split("\n")[0]?.trim();
+  if (!firstLine) return false;
+  return /[–—-]/.test(firstLine) && firstLine.includes(",") && /strikes/i.test(normalized);
+}
+
 function npcSkillInfo(actor, skill) {
   const baseBonus = Number(actor?.system?.bonus ?? 0);
   const slots = ensureNpcFocusSlots(actor?.system?.focus?.slots);
@@ -716,6 +859,11 @@ function npcSkillInfo(actor, skill) {
     totalBonus: baseBonus + extraBonus,
     label
   };
+}
+
+function escapeRegExp(string) {
+  if (typeof string !== "string") return "";
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function copyTextToClipboard(text) {

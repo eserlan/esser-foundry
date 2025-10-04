@@ -64,6 +64,8 @@
     "SummaryCopied": "Summary copied to clipboard.",
     "CopyFailed": "Could not copy summary. Copy it manually.",
     "NoSkillSelected": "Choose a skill before rolling.",
-    "TargetRequired": "Target a defender token for the opposed check."
+    "TargetRequired": "Target a defender token for the opposed check.",
+    "PasteImported": "NPC summary pasted successfully.",
+    "PasteUnrecognized": "Could not understand the pasted NPC summary."
   }
 }
