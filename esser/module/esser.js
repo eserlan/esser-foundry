@@ -351,7 +351,44 @@ class EsserNpcSheet extends HandlebarsApplicationMixin(foundry.applications.shee
       });
     }
 
-    htmlElement.addEventListener("paste", (event) => this._onPasteStatBlock(event));
+    const statBlockInput = htmlElement.querySelector("[data-role='npc-stat-block']");
+    if (statBlockInput) {
+      const importStatBlock = async () => {
+        const raw = statBlockInput.value?.trim();
+        if (!raw) {
+          ui.notifications.warn(game.i18n.localize("ESSER.NPC.StatBlockEmpty"));
+          return;
+        }
+
+        const imported = await this._importNpcStatBlock(raw);
+        if (imported) {
+          statBlockInput.value = "";
+        }
+      };
+
+      const importButton = htmlElement.querySelector("[data-action='npc-import-stat-block']");
+      if (importButton) {
+        importButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          importStatBlock();
+        });
+      }
+
+      statBlockInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+          event.preventDefault();
+          importStatBlock();
+        }
+      });
+
+      statBlockInput.addEventListener("paste", (event) => {
+        const text = event.clipboardData?.getData("text/plain") ?? "";
+        if (!text) return;
+        event.preventDefault();
+        statBlockInput.value = text.trim();
+        importStatBlock();
+      });
+    }
   }
 
   async _modStrikes(delta) {
@@ -404,25 +441,29 @@ class EsserNpcSheet extends HandlebarsApplicationMixin(foundry.applications.shee
     return lines.join("\n");
   }
 
-  async _onPasteStatBlock(event) {
-    const clipboard = event?.clipboardData ?? (typeof window !== "undefined" ? window.clipboardData : undefined);
-    if (!clipboard?.getData) return;
-
-    const text = clipboard.getData("text/plain") || clipboard.getData("text");
-    if (!text) return;
-
+  async _importNpcStatBlock(text) {
     const parsed = parseNpcStatBlock(text);
     if (!parsed) {
       if (looksLikeNpcStatBlock(text)) {
         ui.notifications.warn(game.i18n.localize("ESSER.NPC.PasteUnrecognized"));
       }
-      return;
+      return false;
     }
 
-    event.preventDefault();
-    event.stopPropagation();
+    try {
+      await this._applyParsedNpcStatBlock(parsed);
+      ui.notifications.info(game.i18n.localize("ESSER.NPC.PasteImported"));
+      return true;
+    } catch (error) {
+      console.error(error);
+      ui.notifications.error(game.i18n.localize("ESSER.NPC.PasteUnrecognized"));
+      return false;
+    }
+  }
 
+  async _applyParsedNpcStatBlock(parsed) {
     const update = {};
+
     if (parsed.name) {
       update.name = parsed.name;
     }
@@ -457,13 +498,7 @@ class EsserNpcSheet extends HandlebarsApplicationMixin(foundry.applications.shee
       foundry.utils.setProperty(update, "system.concept", parsed.concept ?? "");
     }
 
-    try {
-      await this.actor.update(update);
-      ui.notifications.info(game.i18n.localize("ESSER.NPC.PasteImported"));
-    } catch (error) {
-      console.error(error);
-      ui.notifications.error(game.i18n.localize("ESSER.NPC.PasteUnrecognized"));
-    }
+    return this.actor.update(update);
   }
 }
 
