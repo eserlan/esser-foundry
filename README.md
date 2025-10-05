@@ -42,6 +42,8 @@ Notes
 - The zip must unpack to a folder named exactly `esser` at the top level.
 - Current repo `esser/system.json` shows `version: 0.1.23`; update VERSION above to match when releasing.
 
-Alternative: GitHub Pages (advanced)
-- You can enable GitHub Pages and host the raw `system.json` at a Pages URL (e.g., `https://OWNER.github.io/REPO/esser/system.json`).
-- You still need a downloadable zip for the `download` field; you can link the Release asset URL as above.
+Alternative: GitHub Pages (preferred)
+- This repo is configured to deploy `esser/system.json` to GitHub Pages on pushes to `main` and tags (`v*`).
+- Your live manifest URL is:
+  - `https://eserlan.github.io/esser-foundry/esser/system.json`
+- The `download` field in `esser/system.json` still points to the GitHub Release asset for the matching version.
