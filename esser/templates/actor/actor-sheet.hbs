@@ -58,6 +58,25 @@
             value="{{system.concept}}"
             placeholder="{{localize 'ESSER.Concept'}}"
           />
+
+          <div class="level-panel">
+            <label class="field-label" for="esser-actor-level-{{actor._id}}">{{localize "ESSER.Level"}}</label>
+            <div class="level-controls">
+              <input
+                id="esser-actor-level-{{actor._id}}"
+                class="level-value"
+                type="number"
+                name="system.level"
+                data-dtype="Number"
+                value="{{system.level}}"
+                min="1"
+                max="5"
+              />
+              <button type="button" class="level-up-button" data-action="level-up" aria-label="{{localize 'ESSER.LevelUp'}}">
+                {{localize "ESSER.LevelUp"}}
+              </button>
+            </div>
+          </div>
         </div>
         <div class="strikes-panel">
           <span class="panel-label">{{localize "ESSER.Strikes"}}</span>
