@@ -48,9 +48,9 @@
   },
   "ESSER.SkillRank": {
     "untrained": "Untrained (+0)",
-    "skilled": "Skilled (+2)",
-    "expert": "Expert (+4)",
-    "master": "Master (+6)"
+    "skilled": "Skilled (+1)",
+    "expert": "Expert (+2)",
+    "master": "Master (+3)"
   },
   "ESSER.NPC": {
     "Tier": "Tier",

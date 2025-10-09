@@ -240,9 +240,9 @@ const ATTRIBUTE_DEFS = {
 
 const SKILL_RANK_DEFS = [
   { value: 0, labelKey: "ESSER.SkillRank.untrained" },
-  { value: 2, labelKey: "ESSER.SkillRank.skilled" },
-  { value: 4, labelKey: "ESSER.SkillRank.expert" },
-  { value: 6, labelKey: "ESSER.SkillRank.master" }
+  { value: 1, labelKey: "ESSER.SkillRank.skilled" },
+  { value: 2, labelKey: "ESSER.SkillRank.expert" },
+  { value: 3, labelKey: "ESSER.SkillRank.master" }
 ];
 
 const SKILL_RANK_LOOKUP = SKILL_RANK_DEFS.reduce((acc, rank) => {

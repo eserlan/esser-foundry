@@ -6,7 +6,7 @@
 
 **PCs/NPCs:**
 - Use the default **Character** type.
-- Set **Concept**, fill a few **Skills** with +2/+4/+6, others at 0.
+- Set **Concept**, fill a few **Skills** with +1/+2/+3, others at 0.
 - Track **Strikes** (0–3) on the sheet.
 
 **Rolling:**
