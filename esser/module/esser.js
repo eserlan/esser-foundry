@@ -342,6 +342,16 @@ class EsserActorSheet extends ActorImageControlsMixin(BaseActorSheet) {
         this._modStrikes(-1);
       });
     });
+
+    htmlElement.querySelectorAll("[data-action='level-up']").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const choice = await EsserLevelUpDialog.show(this.actor);
+        if (choice) {
+          await applyLevelUp(this.actor, choice);
+        }
+      });
+    });
   }
 
   async _modStrikes(delta) {
@@ -624,9 +634,331 @@ class EsserNpcImportApplication extends BaseHandlebarsApplication {
   }
 }
 
+class EsserLevelUpDialog extends foundry.applications.api.DialogV2 {
+  constructor(actor, options = {}) {
+    super(options);
+    this.actor = actor;
+  }
+
+  static async show(actor) {
+    const currentLevel = Number(actor.system.level ?? 1);
+    const nextLevel = currentLevel + 1;
+    
+    if (currentLevel >= 5) {
+      ui.notifications.warn(game.i18n.localize("ESSER.LevelUpMaxLevel"));
+      return null;
+    }
+
+    const levelOptions = getLevelUpOptions(actor, nextLevel);
+    if (levelOptions.length === 0) {
+      ui.notifications.warn("No valid level-up options available.");
+      return null;
+    }
+
+    const content = await renderLevelUpDialogContent(actor, nextLevel, levelOptions);
+    
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: game.i18n.format("ESSER.LevelUpTitle", { level: nextLevel }),
+        icon: "fa-solid fa-arrow-up"
+      },
+      content,
+      buttons: [
+        {
+          action: "cancel",
+          label: game.i18n.localize("ESSER.LevelUpCancel"),
+          icon: "fa-solid fa-times"
+        },
+        {
+          action: "confirm",
+          label: game.i18n.localize("ESSER.LevelUpConfirm"),
+          icon: "fa-solid fa-check",
+          default: true,
+          callback: (event, button, dialog) => extractLevelUpChoice(dialog)
+        }
+      ],
+      close: () => null
+    });
+  }
+}
+
+async function renderLevelUpDialogContent(actor, nextLevel, options) {
+  const description = game.i18n.format("ESSER.LevelUpDescription", { level: nextLevel });
+  const chooseLabel = game.i18n.localize("ESSER.LevelUpChooseOption");
+  
+  let html = `
+    <div class="esser-level-up-dialog">
+      <p class="level-up-description">${description}</p>
+      <p class="level-up-choose">${chooseLabel}</p>
+      <form id="level-up-form">
+  `;
+
+  for (const option of options) {
+    html += `
+      <div class="level-up-option">
+        <input type="radio" name="levelUpChoice" id="option-${option.type}" value="${option.type}" />
+        <label for="option-${option.type}">${option.label}</label>
+        ${option.selectHtml || ""}
+      </div>
+    `;
+  }
+
+  html += `
+      </form>
+    </div>
+  `;
+
+  return html;
+}
+
+function extractLevelUpChoice(dialog) {
+  const form = dialog.querySelector("#level-up-form");
+  if (!form) return null;
+  
+  const selectedRadio = form.querySelector('input[name="levelUpChoice"]:checked');
+  if (!selectedRadio) return null;
+
+  const choiceType = selectedRadio.value;
+  const choice = { type: choiceType };
+
+  if (choiceType === "gainSkill" || choiceType === "upgradeSkill") {
+    const skillSelect = form.querySelector(`#skill-select-${choiceType}`);
+    if (skillSelect) {
+      choice.skill = skillSelect.value;
+    }
+  } else if (choiceType === "increaseAttribute") {
+    const attributeSelect = form.querySelector("#attribute-select-increaseAttribute");
+    if (attributeSelect) {
+      choice.attribute = attributeSelect.value;
+    }
+  }
+
+  return choice;
+}
+
+function getLevelUpOptions(actor, nextLevel) {
+  const options = [];
+  const currentSkills = actor.system.skills || {};
+  const currentAttributes = actor.system.attributes || {};
+
+  // Level 2 – Adventurer: Gain 1 new Skilled skill or +1 attribute (max +3)
+  if (nextLevel === 2) {
+    const untrainedSkills = Object.entries(currentSkills)
+      .filter(([key, value]) => {
+        const { bonus } = extractSkillBonus(value);
+        return bonus === 0;
+      })
+      .map(([key]) => key);
+
+    if (untrainedSkills.length > 0) {
+      const selectHtml = buildSkillSelect("gainSkill", untrainedSkills);
+      options.push({
+        type: "gainSkill",
+        label: game.i18n.format("ESSER.LevelUpGainSkill", { rank: game.i18n.localize("ESSER.SkillRank.skilled") }),
+        selectHtml,
+        targetRank: 1
+      });
+    }
+
+    const attributesUnderMax = Object.entries(currentAttributes)
+      .filter(([key, value]) => Number(value) < 3)
+      .map(([key]) => key);
+
+    if (attributesUnderMax.length > 0) {
+      const selectHtml = buildAttributeSelect("increaseAttribute", attributesUnderMax);
+      options.push({
+        type: "increaseAttribute",
+        label: game.i18n.localize("ESSER.LevelUpIncreaseAttribute"),
+        selectHtml
+      });
+    }
+  }
+
+  // Level 3 – Veteran: Upgrade 1 skill (Skilled → Expert, or Expert → Master) or gain a new Skilled skill
+  if (nextLevel === 3) {
+    const upgradableSkills = Object.entries(currentSkills)
+      .filter(([key, value]) => {
+        const { bonus } = extractSkillBonus(value);
+        return bonus === 1 || bonus === 2;
+      })
+      .map(([key]) => key);
+
+    if (upgradableSkills.length > 0) {
+      const selectHtml = buildSkillSelect("upgradeSkill", upgradableSkills);
+      options.push({
+        type: "upgradeSkill",
+        label: game.i18n.localize("ESSER.LevelUpUpgradeSkill"),
+        selectHtml
+      });
+    }
+
+    const untrainedSkills = Object.entries(currentSkills)
+      .filter(([key, value]) => {
+        const { bonus } = extractSkillBonus(value);
+        return bonus === 0;
+      })
+      .map(([key]) => key);
+
+    if (untrainedSkills.length > 0) {
+      const selectHtml = buildSkillSelect("gainSkill", untrainedSkills);
+      options.push({
+        type: "gainSkill",
+        label: game.i18n.format("ESSER.LevelUpGainSkill", { rank: game.i18n.localize("ESSER.SkillRank.skilled") }),
+        selectHtml,
+        targetRank: 1
+      });
+    }
+  }
+
+  // Level 4 – Hero: Increase 1 attribute by +1 or upgrade a skill
+  if (nextLevel === 4) {
+    const attributesUnderMax = Object.entries(currentAttributes)
+      .filter(([key, value]) => Number(value) < 3)
+      .map(([key]) => key);
+
+    if (attributesUnderMax.length > 0) {
+      const selectHtml = buildAttributeSelect("increaseAttribute", attributesUnderMax);
+      options.push({
+        type: "increaseAttribute",
+        label: game.i18n.localize("ESSER.LevelUpIncreaseAttribute"),
+        selectHtml
+      });
+    }
+
+    const upgradableSkills = Object.entries(currentSkills)
+      .filter(([key, value]) => {
+        const { bonus } = extractSkillBonus(value);
+        return bonus >= 1 && bonus < 3;
+      })
+      .map(([key]) => key);
+
+    if (upgradableSkills.length > 0) {
+      const selectHtml = buildSkillSelect("upgradeSkill", upgradableSkills);
+      options.push({
+        type: "upgradeSkill",
+        label: game.i18n.localize("ESSER.LevelUpUpgradeSkill"),
+        selectHtml
+      });
+    }
+  }
+
+  // Level 5 – Champion: Gain 1 new Expert skill or 1 new Master skill (if fitting the story)
+  if (nextLevel === 5) {
+    const untrainedOrSkilledSkills = Object.entries(currentSkills)
+      .filter(([key, value]) => {
+        const { bonus } = extractSkillBonus(value);
+        return bonus <= 1;
+      })
+      .map(([key]) => key);
+
+    if (untrainedOrSkilledSkills.length > 0) {
+      const selectHtml = buildSkillSelect("gainExpertSkill", untrainedOrSkilledSkills);
+      options.push({
+        type: "gainExpertSkill",
+        label: game.i18n.format("ESSER.LevelUpGainSkill", { rank: game.i18n.localize("ESSER.SkillRank.expert") }),
+        selectHtml,
+        targetRank: 2
+      });
+
+      const selectHtml2 = buildSkillSelect("gainMasterSkill", untrainedOrSkilledSkills);
+      options.push({
+        type: "gainMasterSkill",
+        label: game.i18n.format("ESSER.LevelUpGainSkill", { rank: game.i18n.localize("ESSER.SkillRank.master") }),
+        selectHtml2,
+        targetRank: 3
+      });
+    }
+  }
+
+  return options;
+}
+
+function buildSkillSelect(type, skillKeys) {
+  const selectLabel = game.i18n.localize("ESSER.LevelUpSelectSkill");
+  let html = `<select id="skill-select-${type}" class="level-up-select">`;
+  html += `<option value="">— ${selectLabel} —</option>`;
+  
+  for (const skillKey of skillKeys) {
+    const label = localizeOrFallback(`ESSER.Skill.${skillKey}`, SKILL_LABELS[skillKey] ?? skillKey);
+    html += `<option value="${skillKey}">${label}</option>`;
+  }
+  
+  html += `</select>`;
+  return html;
+}
+
+function buildAttributeSelect(type, attributeKeys) {
+  const selectLabel = game.i18n.localize("ESSER.LevelUpSelectAttribute");
+  let html = `<select id="attribute-select-${type}" class="level-up-select">`;
+  html += `<option value="">— ${selectLabel} —</option>`;
+  
+  for (const attributeKey of attributeKeys) {
+    const def = ATTRIBUTE_DEFS[attributeKey];
+    const label = localizeOrFallback(def?.labelKey, def?.label ?? attributeKey);
+    html += `<option value="${attributeKey}">${label}</option>`;
+  }
+  
+  html += `</select>`;
+  return html;
+}
+
+async function applyLevelUp(actor, choice) {
+  const currentLevel = Number(actor.system.level ?? 1);
+  const nextLevel = currentLevel + 1;
+
+  if (!choice || !choice.type) {
+    ui.notifications.warn("Invalid level-up choice.");
+    return false;
+  }
+
+  const update = { "system.level": nextLevel };
+
+  if (choice.type === "gainSkill" || choice.type === "gainExpertSkill" || choice.type === "gainMasterSkill") {
+    if (!choice.skill) {
+      ui.notifications.warn("Please select a skill.");
+      return false;
+    }
+    
+    let targetRank = 1;
+    if (choice.type === "gainExpertSkill") targetRank = 2;
+    if (choice.type === "gainMasterSkill") targetRank = 3;
+    
+    update[`system.skills.${choice.skill}`] = targetRank;
+  } else if (choice.type === "upgradeSkill") {
+    if (!choice.skill) {
+      ui.notifications.warn("Please select a skill to upgrade.");
+      return false;
+    }
+    
+    const currentRank = extractSkillBonus(actor.system.skills?.[choice.skill]).bonus;
+    const newRank = Math.min(3, currentRank + 1);
+    update[`system.skills.${choice.skill}`] = newRank;
+  } else if (choice.type === "increaseAttribute") {
+    if (!choice.attribute) {
+      ui.notifications.warn("Please select an attribute.");
+      return false;
+    }
+    
+    const currentValue = Number(actor.system.attributes?.[choice.attribute] ?? 0);
+    const newValue = Math.min(3, currentValue + 1);
+    update[`system.attributes.${choice.attribute}`] = newValue;
+  }
+
+  try {
+    await actor.update(update);
+    ui.notifications.info(game.i18n.format("ESSER.LevelUpSuccess", { level: nextLevel }));
+    return true;
+  } catch (error) {
+    console.error("Level up error:", error);
+    ui.notifications.error("Failed to apply level up.");
+    return false;
+  }
+}
+
 Hooks.once("ready", () => {
   game.esser ??= {};
   game.esser.showNpcImport = () => EsserNpcImportApplication.show();
+  game.esser.showLevelUp = (actor) => EsserLevelUpDialog.show(actor);
 });
 
 Hooks.on("renderActorDirectory", (app, html) => {

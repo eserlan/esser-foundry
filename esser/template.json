@@ -5,6 +5,7 @@
       "base": {
         "concept": "",
         "notes": "",
+        "level": 1,
         "strikes": 0,
         "maxStrikes": 3,
         "attributes": {
