@@ -721,7 +721,7 @@ function extractLevelUpChoice(dialog) {
   const choiceType = selectedRadio.value;
   const choice = { type: choiceType };
 
-  if (choiceType === "gainSkill" || choiceType === "upgradeSkill") {
+  if (choiceType === "gainSkill" || choiceType === "upgradeSkill" || choiceType === "gainExpertSkill" || choiceType === "gainMasterSkill") {
     const skillSelect = form.querySelector(`#skill-select-${choiceType}`);
     if (skillSelect) {
       choice.skill = skillSelect.value;
@@ -864,7 +864,7 @@ function getLevelUpOptions(actor, nextLevel) {
       options.push({
         type: "gainMasterSkill",
         label: game.i18n.format("ESSER.LevelUpGainSkill", { rank: game.i18n.localize("ESSER.SkillRank.master") }),
-        selectHtml2,
+        selectHtml: selectHtml2,
         targetRank: 3
       });
     }

@@ -19,3 +19,12 @@
 
 **Five-Room Dungeon:**
 - A `Scene` compendium “ESSER Adventure Frames” is included; add five scenes and label: Entrance, Puzzle, Twist, Climax, Resolution.
+
+**Level Up System:**
+- Characters start at Level 1 and can advance to Level 5.
+- Click the "Level Up" button on the character sheet to open the level-up dialog.
+- Choose from the available options based on your current level:
+  - **Level 2 – Adventurer:** Gain 1 new Skilled skill OR +1 attribute (max +3)
+  - **Level 3 – Veteran:** Upgrade 1 skill (Skilled → Expert, or Expert → Master) OR gain a new Skilled skill
+  - **Level 4 – Hero:** Increase 1 attribute by +1 OR upgrade a skill
+  - **Level 5 – Champion:** Gain 1 new Expert skill OR 1 new Master skill (if fitting the story)
