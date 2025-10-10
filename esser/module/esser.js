@@ -69,24 +69,25 @@ const ActorImageControlsMixin = (Base) => class extends Base {
     const safeTitle = foundry.utils.escapeHTML?.(title) ?? title;
     const safeImg = foundry.utils.escapeHTML?.(img) ?? img;
 
-    let previewDialog;
     const canShare = Boolean(game?.user?.isGM);
-    const buttons = {};
+    const buttons = [];
 
     if (canShare) {
-      buttons.share = {
+      buttons.push({
+        action: "share",
         label: game.i18n.localize("ESSER.ShowToPlayers"),
         callback: async () => {
           await this._onShowActorImage();
-          return false;
+          return null;
         }
-      };
+      });
     }
 
-    buttons.close = {
+    buttons.push({
+      action: "close",
       label: game.i18n.localize("ESSER.Close"),
-      callback: () => previewDialog?.close?.()
-    };
+      default: !canShare
+    });
 
     const content = `
       <div class="esser-image-preview-frame">
@@ -97,17 +98,26 @@ const ActorImageControlsMixin = (Base) => class extends Base {
       </div>
     `.trim();
 
-    previewDialog = new Dialog({
-      title,
-      content,
-      buttons,
-      default: canShare ? "share" : "close"
-    }, {
-      classes: ["esser", "image-preview-dialog"]
-    });
+    // Use DialogV2 (ApplicationV2) to avoid V1 deprecation
+    const DialogV2 = foundry?.applications?.api?.DialogV2;
+    if (DialogV2) {
+      const previewDialog = new DialogV2({
+        window: {
+          title,
+          icon: "fa-regular fa-image",
+          classes: ["esser", "image-preview-dialog"]
+        },
+        content,
+        buttons,
+        close: () => null
+      });
+      previewDialog.render(true);
+      return previewDialog;
+    }
 
-    previewDialog.render(true);
-    return previewDialog;
+    // Fallback (very old cores): open image in a new tab
+    window.open(img, "_blank", "noopener");
+    return null;
   }
 
   async _onViewActorImage(event) {
@@ -173,19 +183,36 @@ const ActorImageControlsMixin = (Base) => class extends Base {
       </div>
     `.trim();
 
-    const result = await Dialog.prompt({
-      title,
-      content,
-      label: game.i18n.localize?.("ESSER.Confirm") ?? "Confirm",
-      rejectClose: false,
-      callback: (html) => {
-        const root = html instanceof HTMLElement ? html : html[0];
-        return root?.querySelector?.("input[name='img-path']")?.value?.trim();
-      }
-    });
+    // Prefer DialogV2 over deprecated Dialog.prompt
+    const DialogV2 = foundry?.applications?.api?.DialogV2;
+    if (DialogV2) {
+      const result = await DialogV2.wait({
+        window: { title, icon: "fa-regular fa-image" },
+        content,
+        buttons: [
+          { action: "cancel", label: game.i18n.localize?.("ESSER.Cancel") ?? "Cancel" },
+          {
+            action: "confirm",
+            label: game.i18n.localize?.("ESSER.Confirm") ?? "Confirm",
+            default: true,
+            callback: (event, button, dialog) => {
+              const root = dialog instanceof HTMLElement ? dialog : dialog?.element ?? dialog;
+              return root?.querySelector?.("input[name='img-path']")?.value?.trim();
+            }
+          }
+        ],
+        close: () => null
+      });
 
+      if (!result) return null;
+      const update = {};
+      foundry.utils.setProperty(update, editPath, result);
+      return this.actor.update(update);
+    }
+
+    // Legacy fallback if DialogV2 is unavailable
+    const result = window.prompt(title, safeCurrent);
     if (!result) return null;
-
     const update = {};
     foundry.utils.setProperty(update, editPath, result);
     return this.actor.update(update);
