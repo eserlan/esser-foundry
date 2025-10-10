@@ -7,7 +7,7 @@
   "authors": [{ "name": "Espen + Codex" }],
   "url": "https://github.com/eserlan/esser-foundry",
   "manifest": "https://eserlan.github.io/esser-foundry/esser/system.json",
-  "download": "https://github.com/eserlan/esser-foundry/releases/download/v0.1.23/esser-v0.1.23.zip",
+  "download": "https://github.com/eserlan/esser-foundry/releases/download/v0.1.24/esser-v0.1.24.zip",
   "license": "MIT",
   "esmodules": ["module/esser.js"],
   "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
