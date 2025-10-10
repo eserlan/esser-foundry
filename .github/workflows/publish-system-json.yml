@@ -1,0 +1,105 @@
+name: Publish system.json to Pages and trigger Release
+
+env:
+  SYSTEM_JSON: esser/system.json
+  PAGES_DIR: pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Explicit version (e.g. 1.2.3). If empty, auto-bump."
+        required: false
+        default: ""
+      bump:
+        description: "Auto-bump segment when version is empty."
+        required: true
+        default: patch
+        type: choice
+        options: [patch, minor, major]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  publish-and-tag:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Compute version and update system.json
+        id: ver
+        shell: bash
+        run: |
+          FILE="$SYSTEM_JSON"
+          CURR=$(jq -r .version "$FILE")
+
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            IFS='.' read -r MA MI PA <<< "$CURR"
+            case "${{ github.event.inputs.bump }}" in
+              major) MA=$((MA+1)); MI=0; PA=0 ;;
+              minor) MI=$((MI+1)); PA=0 ;;
+              *)     PA=$((PA+1)) ;;
+            esac
+            VERSION="${MA}.${MI}.${PA}"
+          fi
+
+          DL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/esser-v${VERSION}.zip"
+
+          tmp="$(mktemp)"
+          jq --arg v "$VERSION" --arg dl "$DL" '.version=$v | .download=$dl' "$FILE" > "$tmp"
+          mv "$tmp" "$FILE"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $SYSTEM_JSON
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): bump to v${{ steps.ver.outputs.version }} and update download url"
+            git push origin HEAD:main
+          fi
+
+      - name: Prepare Pages content
+        run: |
+          mkdir -p $PAGES_DIR
+          cp $SYSTEM_JSON $PAGES_DIR/system.json
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: $PAGES_DIR
+
+      - name: Deploy to Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Create and push tag to trigger Release
+        run: |
+          TAG="v${{ steps.ver.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"; exit 1
+          fi
+          git tag "$TAG"
+          git push origin "$TAG"
+
