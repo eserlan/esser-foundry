@@ -183,7 +183,15 @@ const ActorImageControlsMixin = (Base) => class extends Base {
     const ImagePopoutCls = this._resolveImagePopoutClass();
 
     if (typeof ImagePopoutCls === "function") {
-      const popout = new ImagePopoutCls(img, { window: { title } });
+      // Prefer v13+ signature: new ImagePopout({ src, window })
+      let popout;
+      const options = { src: img, window: { title } };
+      try {
+        popout = new ImagePopoutCls(options);
+      } catch (err) {
+        // Fallback to legacy signature: new ImagePopout(src, { window })
+        popout = new ImagePopoutCls(img, { window: { title } });
+      }
       try {
         if (typeof popout.render === "function") {
           popout.render(true);

@@ -105,7 +105,7 @@ jobs:
         id: deploy
         uses: actions/deploy-pages@v4
 
-      - name: Build release zip
+      - name: Build release
         run: |
           set -e
           VERSION="${{ steps.ver.outputs.version }}"
