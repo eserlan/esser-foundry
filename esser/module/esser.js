@@ -26,10 +26,32 @@ const BaseHandlebarsApplication = HandlebarsApplicationMixin(
     ?? globalThis.Application
 );
 
-const OUT_OF_STRIKES_ICON = "systems/esser/assets/out-of-strikes.svg";
 
 // Manage an ActiveEffect on the Actor to represent the out-of-strikes state
 const OUT_OF_STRIKES_EFFECT_FLAG = { scope: "esser", key: "outOfStrikes" };
+
+// Toggle the core Dead status (skull overlay) on all active tokens of the actor
+async function setDeadStatusOnTokens(actor, enabled) {
+  if (!actor) return;
+  // Default core skull icon used for the Dead/Defeated overlay in Foundry
+  const DEAD_ICON = "icons/svg/skull.svg";
+  const tokens = (typeof actor.getActiveTokens === "function") ? actor.getActiveTokens(true) : [];
+  for (const token of tokens) {
+    try {
+      // Prefer placeable token instance when available
+      if (token && typeof token.toggleEffect === "function") {
+        await token.toggleEffect(DEAD_ICON, { active: enabled, overlay: true });
+        continue;
+      }
+      // Fallback to document-level toggle (older/newer core variants)
+      if (token?.document && typeof token.document.toggleEffect === "function") {
+        await token.document.toggleEffect(DEAD_ICON, { active: enabled, overlay: true });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+}
 
 async function ensureOutOfStrikesEffect(actor, enabled) {
   if (!actor) return;
@@ -37,24 +59,22 @@ async function ensureOutOfStrikesEffect(actor, enabled) {
   const existing = (actor.effects ?? []).find((e) => e?.getFlag?.(OUT_OF_STRIKES_EFFECT_FLAG.scope, OUT_OF_STRIKES_EFFECT_FLAG.key));
 
   if (enabled) {
+    // Instead of maintaining a custom effect, apply the core Dead status overlay
+    await setDeadStatusOnTokens(actor, true);
+
+    // If an old custom effect exists, just ensure it's disabled (or remove it) to avoid confusion
     if (existing) {
-      if (existing.disabled) {
-        await existing.update({ disabled: false }).catch((e) => console.error(e));
+      try {
+        await actor.deleteEmbeddedDocuments("ActiveEffect", [existing.id]);
+      } catch (e) {
+        console.error(e);
       }
-      return;
     }
-    const effectName = game.i18n?.localize?.("ESSER.Effect.OutOfStrikes") ?? "Out of Strikes";
-    const data = [{
-      name: effectName,
-      label: effectName,
-      icon: OUT_OF_STRIKES_ICON,
-      origin: actor.uuid,
-      disabled: false,
-      flags: { [OUT_OF_STRIKES_EFFECT_FLAG.scope]: { [OUT_OF_STRIKES_EFFECT_FLAG.key]: true } }
-    }];
-    await actor.createEmbeddedDocuments("ActiveEffect", data).catch((e) => console.error(e));
     return;
   }
+
+  // If clearing out-of-strikes, remove Dead overlay and any legacy flag effect
+  await setDeadStatusOnTokens(actor, false);
 
   if (existing) {
     await actor.deleteEmbeddedDocuments("ActiveEffect", [existing.id]).catch((e) => console.error(e));
@@ -437,8 +457,10 @@ class EsserActorSheet extends ActorImageControlsMixin(BaseActorSheet) {
     const maxStrikes = this.actor.system.maxStrikes ?? 3;
     const s = clamp(this.actor.system.strikes + delta, 0, maxStrikes);
     await this.actor.update({ "system.strikes": s });
-    if (s >= maxStrikes) {
-      ui.notifications.warn(`${this.actor.name} is OUT (3 Strikes).`);
+    const isDead = maxStrikes > 0 && s >= maxStrikes;
+    await ensureOutOfStrikesEffect(this.actor, isDead);
+    if (isDead) {
+      ui.notifications.warn(`${this.actor.name} is Dead (${maxStrikes} Strikes).`);
     }
   }
 
@@ -544,8 +566,10 @@ class EsserNpcSheet extends ActorImageControlsMixin(BaseActorSheet) {
     const maxStrikes = this.actor.system.maxStrikes ?? 3;
     const s = clamp(this.actor.system.strikes + delta, 0, maxStrikes);
     await this.actor.update({ "system.strikes": s });
-    if (s >= maxStrikes) {
-      ui.notifications.warn(`${this.actor.name} is OUT (${maxStrikes} Strikes).`);
+    const isDead = maxStrikes > 0 && s >= maxStrikes;
+    await ensureOutOfStrikesEffect(this.actor, isDead);
+    if (isDead) {
+      ui.notifications.warn(`${this.actor.name} is Dead (${maxStrikes} Strikes).`);
     }
   }
 
@@ -1068,70 +1092,75 @@ Hooks.once("ready", () => {
   game.esser.showLevelUp = (actor) => EsserLevelUpDialog.show(actor);
 });
 
+// Apply the standard "dead" status when out of strikes
 Hooks.on("canvasReady", () => {
   if (!canvas?.tokens?.placeables) return;
   for (const token of canvas.tokens.placeables) {
-    syncOutOfStrikesForTokenDocument(token?.document ?? token);
+    const actor = token?.actor;
+    if (!actor) continue;
+    syncDeadStatusForActor(actor);
   }
 });
 
 Hooks.on("createToken", (tokenDocument) => {
-  syncOutOfStrikesForTokenDocument(tokenDocument);
-});
-
-Hooks.on("updateToken", (tokenDocument, changes) => {
-  if (!tokenDocument) return;
-  if (!tokenStrikeChanged(changes)) return;
-  syncOutOfStrikesForTokenDocument(tokenDocument);
-});
-
-Hooks.on("updateActor", (actor, changes) => {
+  const actor = tokenDocument?.actor;
   if (!actor) return;
-  if (!actorStrikeChanged(changes)) return;
-  syncOutOfStrikesForActor(actor);
+  syncDeadStatusForActor(actor);
 });
 
-Hooks.on("renderActorDirectory", (app, html) => {
-  if (!game?.user?.isGM) return;
+async function toggleDeadStatusForToken(token, active) {
+  if (!token) return;
+  try {
+    if (typeof token.toggleStatusEffect === "function") {
+      // v13+ API using status id
+      await token.toggleStatusEffect("dead", { active, overlay: true });
+      return;
+    }
+  } catch (e) {
+    console.error(e);
+  }
 
-  const root = html instanceof HTMLElement ? html : html?.[0];
-  if (!(root instanceof HTMLElement)) return;
+  // Legacy fallback via icon path if needed
+  try {
+    const deadIcon = (CONFIG?.statusEffects || []).find((e) => e?.id === "dead")?.icon
+      || "icons/svg/skull.svg";
+    if (typeof token.toggleEffect === "function") {
+      await token.toggleEffect(deadIcon, { active, overlay: true });
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
 
-  const header = root.querySelector(".header-actions");
-  if (!header) return;
-
-  if (header.querySelector("[data-action='esser-open-npc-import']")) return;
-
-  const button = document.createElement("button");
-  button.type = "button";
-  button.dataset.action = "esser-open-npc-import";
-  button.innerHTML = `<i class="fas fa-file-import"></i> ${game.i18n.localize("ESSER.NPC.ImportOpen")}`;
-  button.title = game.i18n.localize("ESSER.NPC.ImportDialogTitle");
-  button.addEventListener("click", (event) => {
-    event.preventDefault();
-    EsserNpcImportApplication.show();
-  });
-
-  header.appendChild(button);
-});
+function syncDeadStatusForActor(actor) {
+  const shouldBeDead = actorIsOutOfStrikes(actor);
+  const tokens = collectActorCanvasTokens(actor);
+  for (const token of tokens) {
+    toggleDeadStatusForToken(token, shouldBeDead);
+  }
+}
 
 // ---------- Helpers ----------
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function actorStrikeChanged(changes) {
-  const flat = foundry.utils.flattenObject?.(changes ?? {}) ?? {};
-  return Object.prototype.hasOwnProperty.call(flat, "system.strikes")
-    || Object.prototype.hasOwnProperty.call(flat, "system.maxStrikes");
+function actorIsOutOfStrikes(actor) {
+  const strikes = Number(actor?.system?.strikes ?? 0);
+  const maxStrikes = Number(actor?.system?.maxStrikes ?? 0);
+  if (!Number.isFinite(strikes) || !Number.isFinite(maxStrikes)) return false;
+  if (maxStrikes <= 0) return false;
+  return strikes >= maxStrikes;
 }
 
-function tokenStrikeChanged(changes) {
-  const flat = foundry.utils.flattenObject?.(changes ?? {}) ?? {};
-  return Object.prototype.hasOwnProperty.call(flat, "actorData.system.strikes")
-    || Object.prototype.hasOwnProperty.call(flat, "actorData.system.maxStrikes")
-    || Object.prototype.hasOwnProperty.call(flat, "system.strikes")
-    || Object.prototype.hasOwnProperty.call(flat, "system.maxStrikes");
+function collectActorCanvasTokens(actor) {
+  // Prefer active tokens from the Actor API when available
+  if (actor && typeof actor.getActiveTokens === "function") {
+    return actor.getActiveTokens(true) ?? [];
+  }
+  // Fallback to scanning canvas
+  if (!canvas?.tokens?.placeables) return [];
+  return canvas.tokens.placeables.filter((t) => t?.actor === actor);
 }
 
 function syncOutOfStrikesForActor(actor) {
@@ -1177,13 +1206,6 @@ function syncOutOfStrikesForTokenDocument(tokenDocument, actorOverride = null) {
   ensureOutOfStrikesEffect(actor, outOfStrikes);
 }
 
-function actorIsOutOfStrikes(actor) {
-  const strikes = Number(actor?.system?.strikes ?? 0);
-  const maxStrikes = Number(actor?.system?.maxStrikes ?? 0);
-  if (!Number.isFinite(strikes) || !Number.isFinite(maxStrikes)) return false;
-  if (maxStrikes <= 0) return false;
-  return strikes >= maxStrikes;
-}
 
 function expandSubmitData(formData) {
   const raw = typeof formData?.toObject === "function"
@@ -1707,3 +1729,16 @@ function escapeRegExp(string) {
   if (typeof string !== "string") return "";
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+// Keep the Dead status in sync if strikes are changed by any other means
+Hooks.on("updateActor", async (actor, update, options, userId) => {
+  try {
+    const s = Number(actor?.system?.strikes ?? 0);
+    const m = Number(actor?.system?.maxStrikes ?? 3);
+    if (Number.isNaN(s) || Number.isNaN(m)) return;
+    const isDead = m > 0 && s >= m;
+    await ensureOutOfStrikesEffect(actor, isDead);
+  } catch (err) {
+    console.error(err);
+  }
+});
