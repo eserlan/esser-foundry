@@ -132,7 +132,7 @@ const ActorImageControlsMixin = (Base) => class extends Base {
     const ImagePopoutCls = this._resolveImagePopoutClass();
 
     if (typeof ImagePopoutCls === "function") {
-      const popout = new ImagePopoutCls(img, { title });
+      const popout = new ImagePopoutCls(img, { window: { title } });
       try {
         if (typeof popout.render === "function") {
           popout.render(true);
