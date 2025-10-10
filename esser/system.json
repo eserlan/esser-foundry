@@ -2,7 +2,7 @@
   "id": "esser",
   "title": "ESSER – Espen’s Super Simple Easy RPG",
   "description": "A rules-light, theatre-of-the-mind RPG system for Foundry VTT. d20 + bonuses, Strikes, and simple opposed combat.",
-  "version": "0.1.37",
+  "version": "0.1.38",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
@@ -14,7 +14,7 @@
   ],
   "url": "https://github.com/eserlan/esser-foundry",
   "manifest": "https://eserlan.github.io/esser-foundry/esser/system.json",
-  "download": "https://github.com/eserlan/esser-foundry/releases/download/v0.1.37/esser-v0.1.37.zip",
+  "download": "https://github.com/eserlan/esser-foundry/releases/download/v0.1.38/esser-v0.1.38.zip",
   "license": "MIT",
   "esmodules": [
     "module/esser.js"
