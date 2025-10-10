@@ -43,8 +43,10 @@ async function ensureOutOfStrikesEffect(actor, enabled) {
       }
       return;
     }
+    const effectName = game.i18n?.localize?.("ESSER.Effect.OutOfStrikes") ?? "Out of Strikes";
     const data = [{
-      label: game.i18n?.localize?.("ESSER.Effect.OutOfStrikes") ?? "Out of Strikes",
+      name: effectName,
+      label: effectName,
       icon: OUT_OF_STRIKES_ICON,
       origin: actor.uuid,
       disabled: false,
