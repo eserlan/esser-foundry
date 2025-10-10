@@ -33,17 +33,29 @@ const OUT_OF_STRIKES_EFFECT_FLAG = { scope: "esser", key: "outOfStrikes" };
 // Toggle the core Dead status (skull overlay) on all active tokens of the actor
 async function setDeadStatusOnTokens(actor, enabled) {
   if (!actor) return;
-  // Default core skull icon used for the Dead/Defeated overlay in Foundry
+  // Try preferred API (v12+): Actor#toggleStatusEffect
+  try {
+    if (typeof actor.toggleStatusEffect === "function") {
+      await actor.toggleStatusEffect("dead", { active: enabled, overlay: true });
+      return;
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
+  // Fallbacks for older cores
   const DEAD_ICON = "icons/svg/skull.svg";
   const tokens = (typeof actor.getActiveTokens === "function") ? actor.getActiveTokens(true) : [];
   for (const token of tokens) {
     try {
-      // Prefer placeable token instance when available
+      if (token && typeof token.toggleStatusEffect === "function") {
+        await token.toggleStatusEffect("dead", { active: enabled, overlay: true });
+        continue;
+      }
       if (token && typeof token.toggleEffect === "function") {
         await token.toggleEffect(DEAD_ICON, { active: enabled, overlay: true });
         continue;
       }
-      // Fallback to document-level toggle (older/newer core variants)
       if (token?.document && typeof token.document.toggleEffect === "function") {
         await token.document.toggleEffect(DEAD_ICON, { active: enabled, overlay: true });
       }
