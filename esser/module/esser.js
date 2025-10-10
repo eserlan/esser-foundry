@@ -42,27 +42,6 @@ async function setDeadStatusOnTokens(actor, enabled) {
   } catch (err) {
     console.error(err);
   }
-
-  // Fallbacks for older cores
-  const DEAD_ICON = "icons/svg/skull.svg";
-  const tokens = (typeof actor.getActiveTokens === "function") ? actor.getActiveTokens(true) : [];
-  for (const token of tokens) {
-    try {
-      if (token && typeof token.toggleStatusEffect === "function") {
-        await token.toggleStatusEffect("dead", { active: enabled, overlay: true });
-        continue;
-      }
-      if (token && typeof token.toggleEffect === "function") {
-        await token.toggleEffect(DEAD_ICON, { active: enabled, overlay: true });
-        continue;
-      }
-      if (token?.document && typeof token.document.toggleEffect === "function") {
-        await token.document.toggleEffect(DEAD_ICON, { active: enabled, overlay: true });
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }
 }
 
 async function ensureOutOfStrikesEffect(actor, enabled) {
