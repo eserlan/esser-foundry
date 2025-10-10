@@ -41,6 +41,7 @@
     "units": "unit"
   },
   "primaryTokenAttribute": null,
+  "initiative": "1d20 + @attributes.agility",
   "styles": [
     {
       "src": "styles/esser.css"

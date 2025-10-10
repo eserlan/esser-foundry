@@ -32,6 +32,9 @@
       "coreTrait": "",
       "strikes": 0,
       "maxStrikes": 3,
+      "attributes": {
+        "agility": 1
+      },
       "focus": {
         "slots": [
           { "skill": "melee", "extra": 0 },
