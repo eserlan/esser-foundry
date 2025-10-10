@@ -18,6 +18,7 @@
   "ESSER.LevelUpCancel": "Cancel",
   "ESSER.LevelUpSuccess": "Level up complete! Welcome to level {{level}}.",
   "ESSER.LevelUpMaxLevel": "Already at maximum level (5)",
+  "ESSER.Initiative": "Initiative",
   "ESSER.Strikes": "Strikes",
   "ESSER.Skills": "Skills",
   "ESSER.SkillsHint": "Adjust bonuses and click the die to roll when adventure calls.",
