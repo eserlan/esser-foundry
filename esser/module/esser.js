@@ -1310,10 +1310,22 @@ function prepareNpcFocusSlots(actor, skillOptions) {
 }
 
 function ensureNpcFocusSlots(slots) {
-  const prepared = Array.isArray(slots) ? slots.map((slot) => ({
-    skill: slot?.skill ?? "",
-    extra: Number(slot?.extra ?? 0)
-  })) : [];
+  let prepared = [];
+
+  if (Array.isArray(slots)) {
+    prepared = slots.map((slot) => ({
+      skill: slot?.skill ?? "",
+      extra: Number(slot?.extra ?? 0)
+    }));
+  } else if (slots && typeof slots === "object") {
+    prepared = Object.entries(slots)
+      .filter(([key]) => Number.isInteger(Number(key)))
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+      .map(([, slot]) => ({
+        skill: slot?.skill ?? "",
+        extra: Number(slot?.extra ?? 0)
+      }));
+  }
 
   while (prepared.length < NPC_FOCUS_SLOT_COUNT) {
     prepared.push({ skill: "", extra: 0 });
