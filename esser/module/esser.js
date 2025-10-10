@@ -26,6 +26,8 @@ const BaseHandlebarsApplication = HandlebarsApplicationMixin(
     ?? globalThis.Application
 );
 
+const OUT_OF_STRIKES_ICON = "systems/esser/assets/out-of-strikes.svg";
+
 const ActorImageControlsMixin = (Base) => class extends Base {
   async _onEditActorImage(event) {
     event.preventDefault();
@@ -997,6 +999,29 @@ Hooks.once("ready", () => {
   game.esser.showLevelUp = (actor) => EsserLevelUpDialog.show(actor);
 });
 
+Hooks.on("canvasReady", () => {
+  if (!canvas?.tokens?.placeables) return;
+  for (const token of canvas.tokens.placeables) {
+    syncOutOfStrikesForTokenDocument(token?.document ?? token);
+  }
+});
+
+Hooks.on("createToken", (tokenDocument) => {
+  syncOutOfStrikesForTokenDocument(tokenDocument);
+});
+
+Hooks.on("updateToken", (tokenDocument, changes) => {
+  if (!tokenDocument) return;
+  if (!tokenStrikeChanged(changes)) return;
+  syncOutOfStrikesForTokenDocument(tokenDocument);
+});
+
+Hooks.on("updateActor", (actor, changes) => {
+  if (!actor) return;
+  if (!actorStrikeChanged(changes)) return;
+  syncOutOfStrikesForActor(actor);
+});
+
 Hooks.on("renderActorDirectory", (app, html) => {
   if (!game?.user?.isGM) return;
 
@@ -1024,6 +1049,79 @@ Hooks.on("renderActorDirectory", (app, html) => {
 // ---------- Helpers ----------
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function actorStrikeChanged(changes) {
+  const flat = foundry.utils.flattenObject?.(changes ?? {}) ?? {};
+  return Object.prototype.hasOwnProperty.call(flat, "system.strikes")
+    || Object.prototype.hasOwnProperty.call(flat, "system.maxStrikes");
+}
+
+function tokenStrikeChanged(changes) {
+  const flat = foundry.utils.flattenObject?.(changes ?? {}) ?? {};
+  return Object.prototype.hasOwnProperty.call(flat, "actorData.system.strikes")
+    || Object.prototype.hasOwnProperty.call(flat, "actorData.system.maxStrikes")
+    || Object.prototype.hasOwnProperty.call(flat, "system.strikes")
+    || Object.prototype.hasOwnProperty.call(flat, "system.maxStrikes");
+}
+
+function syncOutOfStrikesForActor(actor) {
+  if (!actor) return;
+  const tokens = collectTokenDocumentsForActor(actor);
+  for (const tokenDocument of tokens) {
+    syncOutOfStrikesForTokenDocument(tokenDocument, actor);
+  }
+}
+
+function collectTokenDocumentsForActor(actor) {
+  const tokens = typeof actor.getActiveTokens === "function"
+    ? actor.getActiveTokens(true)
+    : [];
+
+  const docs = [];
+  for (const token of tokens ?? []) {
+    const doc = token?.document ?? token;
+    if (doc) docs.push(doc);
+  }
+
+  if (docs.length > 0 || !canvas?.tokens?.placeables) {
+    return docs;
+  }
+
+  for (const token of canvas.tokens.placeables) {
+    if (token?.actor !== actor) continue;
+    const doc = token?.document ?? token;
+    if (doc) docs.push(doc);
+  }
+
+  return docs;
+}
+
+function syncOutOfStrikesForTokenDocument(tokenDocument, actorOverride = null) {
+  if (!tokenDocument) return;
+
+  const actor = actorOverride ?? tokenDocument.actor;
+  if (!actor) return;
+
+  const outOfStrikes = actorIsOutOfStrikes(actor);
+  const currentOverlay = tokenDocument.overlayEffect ?? null;
+
+  if (outOfStrikes) {
+    if (currentOverlay === OUT_OF_STRIKES_ICON) return;
+    tokenDocument.update({ overlayEffect: OUT_OF_STRIKES_ICON }).catch((error) => console.error(error));
+    return;
+  }
+
+  if (currentOverlay !== OUT_OF_STRIKES_ICON) return;
+  tokenDocument.update({ overlayEffect: null }).catch((error) => console.error(error));
+}
+
+function actorIsOutOfStrikes(actor) {
+  const strikes = Number(actor?.system?.strikes ?? 0);
+  const maxStrikes = Number(actor?.system?.maxStrikes ?? 0);
+  if (!Number.isFinite(strikes) || !Number.isFinite(maxStrikes)) return false;
+  if (maxStrikes <= 0) return false;
+  return strikes >= maxStrikes;
 }
 
 function expandSubmitData(formData) {
