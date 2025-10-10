@@ -173,9 +173,12 @@ const ActorImageControlsMixin = (Base) => class extends Base {
   }
 
   _resolveImagePopoutClass() {
-    return foundry?.applications?.api?.ImagePopout
+    // Prefer the namespaced class to avoid deprecated global access
+    return (
+      foundry?.applications?.apps?.ImagePopout
+      ?? foundry?.applications?.api?.ImagePopout
       ?? globalThis.ImagePopout
-      ?? foundry?.applications?.apps?.ImagePopout;
+    );
   }
 
   async _fallbackImagePrompt(editPath, current) {
