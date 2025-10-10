@@ -723,7 +723,7 @@ class EsserLevelUpDialog extends foundry.applications.api.DialogV2 {
 async function renderLevelUpDialogContent(actor, nextLevel, options) {
   const description = game.i18n.format("ESSER.LevelUpDescription", { level: nextLevel });
   const chooseLabel = game.i18n.localize("ESSER.LevelUpChooseOption");
-  
+
   let html = `
     <div class="esser-level-up-dialog">
       <p class="level-up-description">${description}</p>
@@ -749,10 +749,35 @@ async function renderLevelUpDialogContent(actor, nextLevel, options) {
   return html;
 }
 
+function resolveDialogRoot(dialog) {
+  if (!dialog) return null;
+
+  if (dialog instanceof HTMLElement) return dialog;
+
+  const candidates = [
+    dialog.element,
+    dialog.content,
+    dialog.modal?.element,
+    dialog.element?.[0],
+    dialog.content?.[0],
+    dialog.modal?.element?.[0]
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate instanceof HTMLElement) return candidate;
+    if (candidate && candidate[0] instanceof HTMLElement) return candidate[0];
+  }
+
+  return null;
+}
+
 function extractLevelUpChoice(dialog) {
-  const form = dialog.querySelector("#level-up-form");
+  const root = resolveDialogRoot(dialog);
+  if (!root) return null;
+
+  const form = root.querySelector("#level-up-form");
   if (!form) return null;
-  
+
   const selectedRadio = form.querySelector('input[name="levelUpChoice"]:checked');
   if (!selectedRadio) return null;
 
@@ -984,6 +1009,9 @@ async function applyLevelUp(actor, choice) {
 
   try {
     await actor.update(update);
+    if (actor.sheet?.rendered) {
+      actor.sheet.render(false);
+    }
     ui.notifications.info(game.i18n.format("ESSER.LevelUpSuccess", { level: nextLevel }));
     return true;
   } catch (error) {
