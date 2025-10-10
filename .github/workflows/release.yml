@@ -4,46 +4,108 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_run:
+    workflows:
+      - 'Publish system.json to Pages and trigger Release'
+    types:
+      - completed
 
 permissions:
   contents: write
 
 jobs:
   release:
+    # Run if a v* tag is pushed, or when the publish workflow completes successfully
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout for tag push
+        if: ${{ github.event_name == 'push' }}
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Set version from tag
-        id: vars
-        shell: bash
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Checkout for workflow_run (publish workflow)
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Install tooling
         run: |
           sudo apt-get update
           sudo apt-get install -y jq zip
 
+      - name: Set version (from tag)
+        if: ${{ github.event_name == 'push' }}
+        id: vars_tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Verify system.json version matches tag
+        if: ${{ github.event_name == 'push' }}
         run: |
           SYSVER=$(jq -r .version esser/system.json)
-          if [ "$SYSVER" != "${{ steps.vars.outputs.version }}" ]; then
-            echo "Version mismatch: system.json=$SYSVER tag=${{ steps.vars.outputs.version }}" >&2
+          if [ "$SYSVER" != "${{ steps.vars_tag.outputs.version }}" ]; then
+            echo "Version mismatch: system.json=$SYSVER tag=${{ steps.vars_tag.outputs.version }}" >&2
             exit 1
           fi
 
-      - name: Build release zip
+      - name: Set version (from system.json)
+        if: ${{ github.event_name == 'workflow_run' }}
+        id: vars_wr
+        shell: bash
         run: |
-          ZIP="esser-v${{ steps.vars.outputs.version }}.zip"
+          VERSION=$(jq -r .version esser/system.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if tag exists (workflow_run)
+        if: ${{ github.event_name == 'workflow_run' }}
+        id: tagcheck
+        shell: bash
+        run: |
+          TAG="v${{ steps.vars_wr.outputs.version }}"
+          if git ls-remote --tags origin "$TAG" | grep -q "$TAG$"; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release zip (tag push)
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          VERSION="${{ steps.vars_tag.outputs.version }}"
+          ZIP="esser-v${VERSION}.zip"
           rm -f "$ZIP"
           zip -r "$ZIP" esser
 
-      - name: Publish GitHub Release
+      - name: Build release zip (workflow_run)
+        if: ${{ github.event_name == 'workflow_run' && steps.tagcheck.outputs.exists == 'false' }}
+        run: |
+          VERSION="${{ steps.vars_wr.outputs.version }}"
+          ZIP="esser-v${VERSION}.zip"
+          rm -f "$ZIP"
+          zip -r "$ZIP" esser
+
+      - name: Publish GitHub Release (tag push)
+        if: ${{ github.event_name == 'push' }}
         uses: softprops/action-gh-release@v2
         with:
-          files: esser-v${{ steps.vars.outputs.version }}.zip
+          files: esser-v${{ steps.vars_tag.outputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish GitHub Release (workflow_run)
+        if: ${{ github.event_name == 'workflow_run' && steps.tagcheck.outputs.exists == 'false' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.vars_wr.outputs.version }}
+          target_commitish: ${{ github.event.workflow_run.head_sha }}
+          files: esser-v${{ steps.vars_wr.outputs.version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

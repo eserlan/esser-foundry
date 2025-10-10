@@ -17,6 +17,12 @@ on:
         default: patch
         type: choice
         options: [patch, minor, major]
+      create_tag:
+        description: "Also create and push vX.Y.Z tag (requires GH_RELEASE_PAT)."
+        required: true
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
 
 permissions:
   contents: write
@@ -47,10 +53,10 @@ jobs:
           fi
           echo "Updated git remotes:" && git remote -v
 
-      - name: Note about PAT
-        if: ${{ env.GH_RELEASE_PAT == '' }}
+      - name: Note about PAT (only if tag creation enabled)
+        if: ${{ inputs.create_tag == 'true' && env.GH_RELEASE_PAT == '' }}
         run: |
-          echo "WARNING: GH_RELEASE_PAT secret not set. Tag pushes from GITHUB_TOKEN will NOT trigger release.yml."
+          echo "WARNING: create_tag=true but GH_RELEASE_PAT secret not set. Tag pushes from GITHUB_TOKEN will NOT trigger release.yml."
 
       - name: Install jq
         run: |
@@ -122,7 +128,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Reconfigure git auth for tag push (use PAT)
-        if: ${{ env.GH_RELEASE_PAT != '' }}
+        if: ${{ inputs.create_tag == 'true' && env.GH_RELEASE_PAT != '' }}
         run: |
           git remote set-url origin "https://x-access-token:${GH_RELEASE_PAT}@github.com/${{ github.repository }}.git"
           git remote -v
