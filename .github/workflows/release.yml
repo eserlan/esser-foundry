@@ -1,12 +1,8 @@
-name: Manual Release (legacy)
+name: Legacy Release (disabled)
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to release (e.g. 1.2.3). If empty, reads from esser/system.json."
-        required: false
-        default: ""
+  # Disabled manual trigger; keep callable if ever needed by other workflows
+  workflow_call:
 
 permissions:
   contents: write

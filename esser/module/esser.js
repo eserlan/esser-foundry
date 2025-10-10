@@ -28,6 +28,37 @@ const BaseHandlebarsApplication = HandlebarsApplicationMixin(
 
 const OUT_OF_STRIKES_ICON = "systems/esser/assets/out-of-strikes.svg";
 
+// Manage an ActiveEffect on the Actor to represent the out-of-strikes state
+const OUT_OF_STRIKES_EFFECT_FLAG = { scope: "esser", key: "outOfStrikes" };
+
+async function ensureOutOfStrikesEffect(actor, enabled) {
+  if (!actor) return;
+  // Find existing effect marked by our flag
+  const existing = (actor.effects ?? []).find((e) => e?.getFlag?.(OUT_OF_STRIKES_EFFECT_FLAG.scope, OUT_OF_STRIKES_EFFECT_FLAG.key));
+
+  if (enabled) {
+    if (existing) {
+      if (existing.disabled) {
+        await existing.update({ disabled: false }).catch((e) => console.error(e));
+      }
+      return;
+    }
+    const data = [{
+      label: game.i18n?.localize?.("ESSER.Effect.OutOfStrikes") ?? "Out of Strikes",
+      icon: OUT_OF_STRIKES_ICON,
+      origin: actor.uuid,
+      disabled: false,
+      flags: { [OUT_OF_STRIKES_EFFECT_FLAG.scope]: { [OUT_OF_STRIKES_EFFECT_FLAG.key]: true } }
+    }];
+    await actor.createEmbeddedDocuments("ActiveEffect", data).catch((e) => console.error(e));
+    return;
+  }
+
+  if (existing) {
+    await actor.deleteEmbeddedDocuments("ActiveEffect", [existing.id]).catch((e) => console.error(e));
+  }
+}
+
 const ActorImageControlsMixin = (Base) => class extends Base {
   async _onEditActorImage(event) {
     event.preventDefault();
@@ -1132,16 +1163,8 @@ function syncOutOfStrikesForTokenDocument(tokenDocument, actorOverride = null) {
   if (!actor) return;
 
   const outOfStrikes = actorIsOutOfStrikes(actor);
-  const currentOverlay = tokenDocument.overlayEffect ?? null;
-
-  if (outOfStrikes) {
-    if (currentOverlay === OUT_OF_STRIKES_ICON) return;
-    tokenDocument.update({ overlayEffect: OUT_OF_STRIKES_ICON }).catch((error) => console.error(error));
-    return;
-  }
-
-  if (currentOverlay !== OUT_OF_STRIKES_ICON) return;
-  tokenDocument.update({ overlayEffect: null }).catch((error) => console.error(error));
+  // Use ActiveEffect on the actor instead of token overlayEffect (deprecated)
+  ensureOutOfStrikesEffect(actor, outOfStrikes);
 }
 
 function actorIsOutOfStrikes(actor) {
