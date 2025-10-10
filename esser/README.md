@@ -12,6 +12,11 @@
 **Rolling:**
 - Click 🎲 beside a skill → d20 + bonus and result ladder in chat.
 
+**Initiative:**
+- Initiative rolls use the Agility attribute (1d20 + Agility bonus).
+- Use the Combat Tracker to roll initiative for all combatants.
+- NPCs have an Agility field on their sheet for initiative rolls.
+
 **Opposed Tests:**
 - Select attacker then defender tokens.
 - Run macro: `macros/opposed-test.js` (drag to hotbar).

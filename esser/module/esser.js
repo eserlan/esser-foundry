@@ -9,6 +9,12 @@ Hooks.once("init", async function () {
   }
   ActorsCollection.registerSheet("esser", EsserActorSheet, { types: ["character"], makeDefault: true });
   ActorsCollection.registerSheet("esser", EsserNpcSheet, { types: ["npc"], makeDefault: true });
+
+  // Override initiative roll to use agility attribute
+  CONFIG.Combat.initiative = {
+    formula: "1d20 + @attributes.agility",
+    decimals: 2
+  };
 });
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -1245,6 +1251,24 @@ export async function opposedCompare(attacker, defender, skill) {
     content: `<p><b>Opposed Result</b>: ${outcome} <br/>Δ = ${diff} (A:${A.total} vs D:${D.total})</p>`
   });
   return { diff, outcome };
+}
+
+// Custom initiative roll with agility
+export async function rollInitiative(actor, options = {}) {
+  if (!actor) return null;
+
+  const agilityBonus = Number(actor.system?.attributes?.agility ?? 1);
+  const roll = await new Roll(`1d20 + ${agilityBonus}`).evaluate();
+
+  const flavor = game.i18n.localize("ESSER.Initiative") || "Initiative";
+  const agilityLabel = localizeOrFallback("ESSER.Attribute.agility", "Agility");
+
+  await roll.toMessage({
+    speaker: ChatMessage.getSpeaker({ actor }),
+    flavor: `${actor.name} rolls ${flavor} (${agilityLabel} ${formatModifier(agilityBonus)})`
+  });
+
+  return roll;
 }
 
 function npcSkillOptions() {
